@@ -1,0 +1,13 @@
+{
+  "name": "vertice-ar-compile",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Determinism harness for MindAR image-target compilation, and groundwork for a recomputable AR target compiler.",
+  "scripts": {
+    "determinism": "node det.mjs"
+  },
+  "dependencies": {
+    "mind-ar": "1.2.5"
+  }
+}
