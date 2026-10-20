@@ -488,6 +488,16 @@ mouthStretchRight  mouthShrugUpper  mouthRollLower</pre>
     <button class="ghost sm" id="rigclear" disabled>Clear</button>
   </div>
   <div class="grid">
+    <div class="fld" style="grid-column:1/-1"><label>Painting which region</label>
+      <select id="rigchannel">
+        <option value="jaw">Jaw — chin and lower lip (drives jawOpen)</option>
+        <option value="lips">Lips — the ring around the mouth (drives the other nine)</option>
+      </select></div>
+  </div>
+  <p class="hint"><b>Jaw</b> is everything that swings when the mouth opens. <b>Lips</b> is the ring
+  of geometry right around the mouth opening, upper and lower together — that band is what pulls,
+  purses and smiles. Paint both; they overlap on the lower lip and that is correct.</p>
+  <div class="grid">
     <div class="fld"><label>Brush size %</label><input id="rigbrush" value="8" data-persist></div>
     <div class="fld"><label>Strength %</label><input id="rigstrength" value="60" data-persist></div>
   </div>
@@ -511,19 +521,27 @@ mouthStretchRight  mouthShrugUpper  mouthRollLower</pre>
     <div class="fld" style="grid-column:1/-1"><label>Export filename</label><input id="rigfile" value="rigged.glb"></div>
   </div>
   <div class="row">
-    <button id="riggen" disabled>Generate shape</button>
+    <button id="riggen" disabled>Generate jawOpen</button>
+    <button id="rigall" disabled>Generate all 10 mouth shapes</button>
     <button class="ghost" id="rigdl" disabled>Download .glb</button>
   </div>
   <div class="status" id="rig3"></div>
   <div class="grid">
-    <div class="fld" style="grid-column:1/-1"><label>Test the shape — drag to open the jaw</label>
+    <div class="fld"><label>Test shape</label><select id="rigpick" disabled></select></div>
+    <div class="fld"><label>Lip movement %</label><input id="riglip" value="100" data-persist></div>
+    <div class="fld" style="grid-column:1/-1"><label>Drag to play the selected shape</label>
       <input id="rigtest" type="range" min="0" max="100" value="0" disabled></div>
   </div>
   <div class="status" id="rig4"></div>
-  <p class="hint">Then load the exported file in <b>Face tracking</b>: the checker will report the
-  morph target, and <b>Talk with the face</b> will drive it. Ten mouth shapes is enough to talk, and
-  the component drives whatever subset exists — so this is worth repeating for
-  <span class="mono">mouthPucker</span> and the rest.</p>
+  <p class="hint"><b>Lip movement %</b> scales the nine lip shapes together. A lip ring seeded from
+  the jaw is a thin, low-weight band, so the shapes come out subtle — painting the ring properly,
+  or raising this to 150–250, gives movement you can actually read on a face.</p>
+  <p class="hint">The ten are <span class="mono">jawOpen mouthClose mouthFunnel mouthPucker
+  mouthSmileLeft mouthSmileRight mouthStretchLeft mouthStretchRight mouthShrugUpper
+  mouthRollLower</span> — enough to talk. Then load the exported file in <b>Face tracking</b>: the
+  checker reports what matched and <b>Talk with the face</b> drives it. Export re-encodes textures
+  and can grow the file; run it through
+  <span class="mono">gltf-transform optimize</span> before putting it on a phone.</p>
 </section>
 </div>
 <div class="panel" id="panel-qr" hidden>
