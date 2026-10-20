@@ -20,7 +20,16 @@ its index), choose content, preview against the real tracker, then export either
 1 nose tip, 152 chin). `faceOccluder` is on by default — a head-shaped mask hiding geometry behind
 the face, without which glasses arms and hats render through the head.
 
-**QR code** — generate the code that points at the experience, client-side. Brand colours, four
+**QR code** — generate the code that points at the experience, client-side. Six module patterns
+(square, rounded, extra-rounded, dots, small dots, diamond), six corner styles (square, rounded,
+extra-rounded, circle, square+dot, leaf), eight brand-safe colour swatches plus free hex, four
+frame options with a caption, custom centre art, and **vector SVG** out.
+
+It differs from the consumer tools in one way that matters: it **measures contrast and says so**.
+Readers threshold luminance, so a pale colour simply fails — every swatch here clears 4:1 on white,
+and anything below is flagged rather than quietly shipped. Decorative module shapes and styled
+corners are flagged too: they shrink the sampled area or deviate from the 1:1:3:1:1 finder ratio,
+which usually works and sometimes does not. Brand colours, four
 error-correction levels, an optional Vértice mark knocked into the centre (forces level H, covers
 ~22%), and **vector SVG** output plus PNG. Shows the module count as you type, because density is
 what makes a code fail when scanned off a screen: the bare URL is 33×33 at level H, the same URL

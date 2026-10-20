@@ -305,12 +305,54 @@ const MARK_POLYS = [
   ["#e0a24c", "0.22,0 48.5,48.1 48.2,48.42 0.13,0.17"],
 ];
 
+// Readers threshold luminance, so a pretty colour with too little contrast simply fails. Pale
+// swatches are where consumer QR tools quietly break codes, so this one measures and says so.
+function relLum(hex) {
+  const h = hex.replace("#", "");
+  const v = [0, 2, 4].map((i) => {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+}
+function contrast(a, b) {
+  try {
+    const [x, y] = [relLum(a), relLum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  } catch (e) { return 0; }
+}
+
+// Module shape. Square is the only one that cannot cost you a scan; the others shrink the dark
+// area a reader samples, which matters most at small sizes and on screens.
+function moduleSVG(x, y, shape, fill) {
+  switch (shape) {
+    case "rounded":  return `<rect x="${x + .05}" y="${y + .05}" width=".9" height=".9" rx=".22" fill="${fill}"/>`;
+    case "xrounded": return `<rect x="${x + .05}" y="${y + .05}" width=".9" height=".9" rx=".45" fill="${fill}"/>`;
+    case "dots":     return `<circle cx="${x + .5}" cy="${y + .5}" r=".45" fill="${fill}"/>`;
+    case "sdots":    return `<circle cx="${x + .5}" cy="${y + .5}" r=".36" fill="${fill}"/>`;
+    case "diamond":  return `<polygon points="${x + .5},${y + .02} ${x + .98},${y + .5} ${x + .5},${y + .98} ${x + .02},${y + .5}" fill="${fill}"/>`;
+    default:         return `<rect x="${x}" y="${y}" width="1" height="1" fill="${fill}"/>`;
+  }
+}
+
 // A rounded finder keeps the 1:1:3:1:1 ratio a reader measures along its scan lines, which is why
 // it works in practice — but it is a deviation, so the UI says to test the real output.
-function finderSVG(x, y, dark, light, r) {
-  const rr = (X, Y, W, H, R, f) =>
-    `<rect x="${X}" y="${Y}" width="${W}" height="${H}" rx="${R}" ry="${R}" fill="${f}"/>`;
-  return rr(x, y, 7, 7, r, dark) + rr(x + 1, y + 1, 5, 5, r * 0.7, light) + rr(x + 2, y + 2, 3, 3, r * 0.45, dark);
+function finderSVG(x, y, dark, light, style) {
+  const rr = (X, Y, W, H, R, f) => `<rect x="${X}" y="${Y}" width="${W}" height="${H}" rx="${R}" ry="${R}" fill="${f}"/>`;
+  const ci = (cx, cy, rad, f) => `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${f}"/>`;
+  // one corner left square, the rest rounded — the "leaf" shape
+  const leaf = (X, Y, S, R, f) =>
+    `<path d="M${X},${Y} h${S - R} a${R},${R} 0 0 1 ${R},${R} v${S - R * 2} a${R},${R} 0 0 1 ${-R},${R} `
+    + `h${-(S - R * 2)} a${R},${R} 0 0 1 ${-R},${-R} v${-(S - R)} z" fill="${f}"/>`;
+  switch (style) {
+    case "rounded":  return rr(x, y, 7, 7, 2, dark) + rr(x + 1, y + 1, 5, 5, 1.4, light) + rr(x + 2, y + 2, 3, 3, .9, dark);
+    case "xrounded": return rr(x, y, 7, 7, 3.2, dark) + rr(x + 1, y + 1, 5, 5, 2.2, light) + rr(x + 2, y + 2, 3, 3, 1.4, dark);
+    case "circle":   return ci(x + 3.5, y + 3.5, 3.5, dark) + ci(x + 3.5, y + 3.5, 2.5, light) + ci(x + 3.5, y + 3.5, 1.5, dark);
+    case "ring":     return ci(x + 3.5, y + 3.5, 3.5, dark) + ci(x + 3.5, y + 3.5, 2.5, light) + ci(x + 3.5, y + 3.5, 1.5, dark);
+    case "dot":      return rr(x, y, 7, 7, 0, dark) + rr(x + 1, y + 1, 5, 5, 0, light) + ci(x + 3.5, y + 3.5, 1.5, dark);
+    case "leaf":     return leaf(x, y, 7, 3, dark) + leaf(x + 1, y + 1, 5, 2, light) + leaf(x + 2, y + 2, 3, 1.1, dark);
+    default:         return rr(x, y, 7, 7, 0, dark) + rr(x + 1, y + 1, 5, 5, 0, light) + rr(x + 2, y + 2, 3, 3, 0, dark);
+  }
 }
 
 function buildQR() {
@@ -333,7 +375,9 @@ function buildQR() {
   const dark = $("qdark").value.trim() || "#17191F";
   const light = $("qlight").value.trim() || "#F6F6F8";
 
-  const rounded = $("qfinder").value === "rounded";
+  const fstyle = $("qfinder").value;
+  const rounded = fstyle !== "square";          // styled finders are drawn as shapes, not modules
+  const shape = $("qpattern").value;
   // the three finders occupy 7x7 at the corners; when styling them, their modules are skipped and
   // the shapes drawn instead
   const inFinder = (r, c) =>
@@ -343,14 +387,13 @@ function buildQR() {
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
       if (rounded && inFinder(r, c)) continue;
-      if (qr.isDark(r, c)) body += `<rect x="${c + quiet}" y="${r + quiet}" width="1" height="1" fill="${dark}"/>`;
+      if (qr.isDark(r, c)) body += moduleSVG(c + quiet, r + quiet, shape, dark);
     }
   }
   if (rounded) {
-    const rad = 2;
-    body += finderSVG(quiet, quiet, dark, light, rad)
-          + finderSVG(quiet + n - 7, quiet, dark, light, rad)
-          + finderSVG(quiet, quiet + n - 7, dark, light, rad);
+    body += finderSVG(quiet, quiet, dark, light, fstyle)
+          + finderSVG(quiet + n - 7, quiet, dark, light, fstyle)
+          + finderSVG(quiet, quiet + n - 7, dark, light, fstyle);
   }
   if (window.__centreImg) {
     const side = Math.round(total * 0.22);
@@ -369,15 +412,39 @@ function buildQR() {
     MARK_POLYS.forEach(([f, p]) => { body += `<polygon points="${p}" fill="${f}"/>`; });
     body += `<circle cx="49.9" cy="49.85" r="2.25" fill="#e0a24c"/></g>`;
   }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" `
-    + `width="${total}" height="${total}" shape-rendering="crispEdges" role="img" `
-    + `aria-label="QR code for ${esc(url)}">${body}</svg>`;
+  // Frame sits OUTSIDE the quiet zone — eating into it is a classic way to break a code.
+  const frame = $("qframe").value;
+  let vb = total, shiftX = 0, shiftY = 0, outer = "";
+  if (frame !== "none") {
+    const bw = 1.2, capH = frame === "caption" ? 5 : 0;
+    vb = total + bw * 4 + capH;
+    shiftX = shiftY = bw * 2;
+    const rx = frame === "rounded" ? 3 : 0;
+    outer = `<rect x="${bw / 2}" y="${bw / 2}" width="${vb - bw}" height="${vb - bw}" rx="${rx}" `
+          + `fill="${light}" stroke="${dark}" stroke-width="${bw}"/>`;
+    if (capH) {
+      const cap = ($("qcaption").value || "SCAN ME").toUpperCase();
+      outer += `<text x="${vb / 2}" y="${total + bw * 2 + capH * 0.72}" text-anchor="middle" `
+             + `font-family="Helvetica, Arial, sans-serif" font-size="${capH * 0.62}" `
+             + `font-weight="700" letter-spacing="0.25" fill="${dark}">${esc(cap)}</text>`;
+    }
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vb} ${vb}" `
+    + `width="${vb}" height="${vb}" shape-rendering="crispEdges" role="img" `
+    + `aria-label="QR code for ${esc(url)}">${outer}`
+    + `<g transform="translate(${shiftX},${shiftY})">${body}</g></svg>`;
 
-  const notes = [`${n}×${n} modules`, `level ${ec}`, `${url.length} chars`];
+  const cr = contrast(dark, light);
+  const notes = [`${n}×${n} modules`, `level ${ec}`, `${url.length} chars`, `contrast ${cr.toFixed(1)}:1`];
+  let bad = n > 57;
+  if (cr < 4) { notes.push("⚠ too little contrast — readers threshold luminance and this will fail"); bad = true; }
+  else if (cr < 7) notes.push("contrast is workable but not generous");
+  if (relLum(dark) > relLum(light)) { notes.push("⚠ inverted (light on dark) — many readers cope, not all"); }
   if (n > 45) notes.push("dense — shorten the URL if it scans badly off a screen");
-  if (centre) notes.push("centre art covers ~22%, recoverable at H");
-  if (rounded) notes.push("rounded finders — test before relying on it");
-  say("q1", notes.join(" · "), n > 57 ? "err" : "ok");
+  if (centre) notes.push("centre art ~22%, recoverable at H");
+  if (rounded) notes.push(`${fstyle} finders — a deviation from the spec, test it`);
+  if (shape !== "square") notes.push(`${shape} modules shrink the sampled area — test at final size`);
+  say("q1", notes.join(" · "), bad ? "err" : "ok");
   return { svg, total, url };
 }
 
@@ -389,7 +456,10 @@ function renderQR() {
   window.__qr = r;
 }
 ["qurl", "qec", "qdark", "qlight"].forEach((id) => $(id).addEventListener("input", renderQR));
-$("qfinder").addEventListener("change", renderQR);
+["qfinder", "qpattern", "qframe"].forEach((id) => $(id).addEventListener("change", renderQR));
+$("qcaption").addEventListener("input", renderQR);
+document.querySelectorAll("button.swatch").forEach((b) =>
+  b.addEventListener("click", () => { $("qdark").value = b.dataset.c; saveSettings(); renderQR(); }));
 
 // Custom centre art, for codes pointing at anything else we own. Embedded as a data URI so the
 // downloaded SVG is self-contained rather than referencing a file that will go missing.
