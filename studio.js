@@ -376,7 +376,6 @@ function buildQR() {
   const light = $("qlight").value.trim() || "#F6F6F8";
 
   const fstyle = $("qfinder").value;
-  const rounded = fstyle !== "square";          // styled finders are drawn as shapes, not modules
   const shape = $("qpattern").value;
   // the three finders occupy 7x7 at the corners; when styling them, their modules are skipped and
   // the shapes drawn instead
@@ -386,15 +385,15 @@ function buildQR() {
   let body = `<rect width="${total}" height="${total}" fill="${light}"/>`;
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
-      if (rounded && inFinder(r, c)) continue;
+      if (inFinder(r, c)) continue;      // finders are always shapes — see below
       if (qr.isDark(r, c)) body += moduleSVG(c + quiet, r + quiet, shape, dark);
     }
   }
-  if (rounded) {
-    body += finderSVG(quiet, quiet, dark, light, fstyle)
-          + finderSVG(quiet + n - 7, quiet, dark, light, fstyle)
-          + finderSVG(quiet, quiet + n - 7, dark, light, fstyle);
-  }
+  // Always drawn as shapes, "square" included. Otherwise the finders inherit the module pattern
+  // and "square corners" come out as dots — the corners must be independent of the pattern.
+  body += finderSVG(quiet, quiet, dark, light, fstyle)
+        + finderSVG(quiet + n - 7, quiet, dark, light, fstyle)
+        + finderSVG(quiet, quiet + n - 7, dark, light, fstyle);
   if (window.__centreImg) {
     const side = Math.round(total * 0.22);
     const off = (total - side) / 2;
@@ -414,23 +413,26 @@ function buildQR() {
   }
   // Frame sits OUTSIDE the quiet zone — eating into it is a classic way to break a code.
   const frame = $("qframe").value;
-  let vb = total, shiftX = 0, shiftY = 0, outer = "";
+  let vw = total, vh = total, shiftX = 0, shiftY = 0, outer = "";
   if (frame !== "none") {
     const bw = 1.2, capH = frame === "caption" ? 5 : 0;
-    vb = total + bw * 4 + capH;
+    // width and height are INDEPENDENT: a caption adds a band below only. Adding it to a square
+    // viewBox padded the right edge too and pushed the code off centre.
+    vw = total + bw * 4;
+    vh = total + bw * 4 + capH;
     shiftX = shiftY = bw * 2;
     const rx = frame === "rounded" ? 3 : 0;
-    outer = `<rect x="${bw / 2}" y="${bw / 2}" width="${vb - bw}" height="${vb - bw}" rx="${rx}" `
+    outer = `<rect x="${bw / 2}" y="${bw / 2}" width="${vw - bw}" height="${vh - bw}" rx="${rx}" `
           + `fill="${light}" stroke="${dark}" stroke-width="${bw}"/>`;
     if (capH) {
       const cap = ($("qcaption").value || "SCAN ME").toUpperCase();
-      outer += `<text x="${vb / 2}" y="${total + bw * 2 + capH * 0.72}" text-anchor="middle" `
-             + `font-family="Helvetica, Arial, sans-serif" font-size="${capH * 0.62}" `
-             + `font-weight="700" letter-spacing="0.25" fill="${dark}">${esc(cap)}</text>`;
+      outer += `<text x="${vw / 2}" y="${total + bw * 2 + capH * 0.7}" text-anchor="middle" `
+             + `font-family="Helvetica, Arial, sans-serif" font-size="${capH * 0.56}" `
+             + `font-weight="700" letter-spacing="0.2" fill="${dark}">${esc(cap)}</text>`;
     }
   }
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vb} ${vb}" `
-    + `width="${vb}" height="${vb}" shape-rendering="crispEdges" role="img" `
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vw} ${vh}" `
+    + `width="${vw}" height="${vh}" shape-rendering="crispEdges" role="img" `
     + `aria-label="QR code for ${esc(url)}">${outer}`
     + `<g transform="translate(${shiftX},${shiftY})">${body}</g></svg>`;
 
@@ -442,10 +444,10 @@ function buildQR() {
   if (relLum(dark) > relLum(light)) { notes.push("⚠ inverted (light on dark) — many readers cope, not all"); }
   if (n > 45) notes.push("dense — shorten the URL if it scans badly off a screen");
   if (centre) notes.push("centre art ~22%, recoverable at H");
-  if (rounded) notes.push(`${fstyle} finders — a deviation from the spec, test it`);
+  if (fstyle !== "square") notes.push(`${fstyle} corners — a deviation from the spec, test it`);
   if (shape !== "square") notes.push(`${shape} modules shrink the sampled area — test at final size`);
   say("q1", notes.join(" · "), bad ? "err" : "ok");
-  return { svg, total, url };
+  return { svg, vw, vh, url };
 }
 
 function renderQR() {
@@ -489,13 +491,15 @@ $("qsvg").addEventListener("click", () => {
 $("qpng").addEventListener("click", () => {
   if (!window.__qr) return;
   const px = Math.max(256, parseInt($("qpx").value, 10) || 1024);
+  const { vw, vh } = window.__qr;
+  const h = Math.round(px * vh / vw);             // a captioned frame is taller than it is wide
   const img = new Image();
   img.onload = () => {
     const cv = document.createElement("canvas");
-    cv.width = cv.height = px;
+    cv.width = px; cv.height = h;
     const ctx = cv.getContext("2d");
     ctx.imageSmoothingEnabled = false;            // keep module edges hard
-    ctx.drawImage(img, 0, 0, px, px);
+    ctx.drawImage(img, 0, 0, px, h);
     cv.toBlob((b) => {
       const u = URL.createObjectURL(b);
       dlBlob(u, `vertice-ar-qr-${px}.png`);
