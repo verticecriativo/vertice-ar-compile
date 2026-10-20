@@ -319,7 +319,7 @@
     <summary>Tracking options</summary>
     <div class="grid">
     <div class="fld"><label>filterMinCF</label><input id="fmincf" value="0.001" data-persist></div>
-    <div class="fld"><label>filterBeta</label><input id="fbeta" value="1000" data-persist></div>
+    <div class="fld"><label>filterBeta</label><input id="fbeta" value="60" data-persist></div>
     <div class="fld"><label>Anchor index</label><input id="fanchor" value="168" data-persist></div>
     </div>
     <div class="row">
@@ -329,7 +329,15 @@
     <label class="chk"><input type="checkbox" id="fuiload" checked data-persist> Loading overlay</label>
     <label class="chk"><input type="checkbox" id="fstats" data-persist> Show stats</label>
     </div>
-    <p class="hint" style="margin-top:10px"><b>filterMinCF</b> lower = smoother but laggier · <b>filterBeta</b> higher = more responsive. Library defaults are 0.001 and 1000.</p>
+    <p class="hint" style="margin-top:10px">These are One-Euro filter settings:
+  <span class="mono">cutoff = filterMinCF + filterBeta × speed</span>.
+  <b>filterMinCF</b> governs how much it smooths when you are still — lower is steadier but laggier.
+  <b>filterBeta</b> governs how quickly smoothing is abandoned as you move — higher follows fast
+  motion but lets noise through when you are still, because camera noise has a non-zero speed too.
+  <b>If the mask shakes while you hold still, lower filterBeta. If it lags when you turn your head,
+  raise it.</b> mind-ar ships 0.001 and <b>1000</b>; 1000 is very aggressive, so the default here is
+  <b>60</b>. Reasoned from how the filter is defined, not measured — a fake camera feed is too
+  stable to reproduce real sensor jitter, so this one needs your eyes on a real phone.</p>
   </details>
   <div class="row">
     <button class="ghost sm anchor" data-i="168">168 · between eyes</button>
