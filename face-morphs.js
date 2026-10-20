@@ -34,12 +34,15 @@
     return n.replace(/[._\s]/g, "").toLowerCase();
   }
 
-  // Extensions plain A-Frame cannot decode: it installs none of these loaders, so the model loads
-  // as nothing and the scene looks empty. Worth catching before anyone builds on it.
+  // Which compressed containers A-Frame can actually open, read from its gltf-model SYSTEM:
+  //   dracoDecoderPath    defaults to gstatic -> Draco works with no setup
+  //   basisTranscoderPath defaults to ""      -> KTX2 is OFF until a path is given
+  //   meshoptDecoderPath  defaults to ""      -> meshopt is OFF until a path is given
+  // So Draco is NOT a problem, and the other two are a missing setting rather than a dead end.
+  // The pages this studio generates now set all three, so these are informational.
   const BLOCKING = {
-    KHR_texture_basisu: "KTX2 textures (needs KTX2Loader)",
-    EXT_meshopt_compression: "meshopt packing (needs MeshoptDecoder)",
-    KHR_draco_mesh_compression: "Draco mesh compression (needs DRACOLoader)",
+    KHR_texture_basisu: "KTX2 textures (needs basisTranscoderPath)",
+    EXT_meshopt_compression: "meshopt packing (needs meshoptDecoderPath)",
   };
 
   // Read a .glb's JSON chunk directly — no three.js, no network, nothing uploaded. Enough to answer

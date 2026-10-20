@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20t";
+const BUILD = "2026-10-20u";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -28,6 +28,13 @@ const LIB = {
   face: "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js",
 };
 const libsFor = (mode) => [LIB.aframe, LIB.extras, mode === "face" ? LIB.face : LIB.image];
+
+// A-Frame's gltf-model system ships a Draco decoder path but leaves basis and meshopt EMPTY, so
+// KTX2-textured and meshopt-packed models silently fail to load. Setting all three on the scene
+// means a downloaded model opens whatever container it arrived in.
+const DECODERS = 'gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.5/;'
+  + ' basisTranscoderPath: https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/basis/;'
+  + ' meshoptDecoderPath: https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/meshopt_decoder.js"';
 
 // face-morphs.js is OUR component, not a pinned CDN library. The export inlines its text so a
 // downloaded page has no dependency on this site; the preview tab loads the same file by URL.
@@ -248,6 +255,7 @@ function imageHTML(mindSrc, assetSrcMode) {
 <style>body{margin:0;overflow:hidden}</style></head><body>
 <a-scene mindar-image="imageTargetSrc: ${mindSrc}; ${trackOpts("i", false)}"
   embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
+  ${DECODERS}
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 ${asset ? `  <a-assets>\n    ${asset}\n  </a-assets>\n` : ""}  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 ${perTarget}
@@ -343,6 +351,7 @@ function faceHTML() {
 ${inline}<style>body{margin:0;overflow:hidden}</style></head><body>
 <a-scene mindar-face="${trackOpts("f", true)}"
   embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
+  ${DECODERS}
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 ${asset ? `  <a-assets>\n    ${asset}\n  </a-assets>\n` : ""}  <a-camera active="false" position="0 0 0" look-controls="enabled: false"></a-camera>
   <a-entity mindar-face-target="anchorIndex: ${parseInt($("fanchor").value, 10) || 0}">

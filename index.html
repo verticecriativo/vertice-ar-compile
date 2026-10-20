@@ -312,8 +312,8 @@
   match, and whether A-Frame can decode it at all.
   <b>Baked facial animation is dropped</b> while this is on — an animation clip and live blendshapes
   write to the same influences and the clip wins. Export plain glTF/GLB: KTX2-compressed or
-  meshopt-packed models need loaders A-Frame does not install and will not decode (three.js's own
-  <span class="mono">facecap.glb</span> is one of these).</p>
+  meshopt-packed models need decoder paths that A-Frame leaves empty by default — the generated
+  pages now set them, so those load too. Draco needs nothing: A-Frame ships a decoder path for it.</p>
   <div class="status" id="f1"></div>
   <details>
     <summary>Tracking options</summary>

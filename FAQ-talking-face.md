@@ -26,7 +26,7 @@ Four separate requirements. A model can satisfy three and still do nothing.
 |---|---|---|
 | 1 | **Morph targets** (blend shapes / shape keys) | studio reports the count when you pick the file |
 | 2 | **Named with the ARKit set** | studio reports `N/51 ARKit matched` |
-| 3 | **Plain glTF** — no KTX2, meshopt or Draco | studio says so explicitly |
+| 3 | **A container A-Frame can open** — Draco is fine; KTX2 and meshopt need decoder paths, which the generated pages now set | studio says so explicitly |
 | 4 | **Light enough for a phone** | studio reports triangles and texture MB |
 
 **A skeleton rig is not a blendshape rig.** Mixamo characters and most "rigged" downloads animate a
@@ -73,8 +73,26 @@ still needed.
 
 ### It says "A-Frame cannot decode this file"
 
-KTX2 textures, meshopt packing or Draco compression. A-Frame installs none of those loaders, so the
-model loads as nothing and the scene looks empty. Re-save it as plain glTF:
+**Correction to an earlier version of this note: Draco is fine.** A-Frame's `gltf-model` system
+defaults `dracoDecoderPath` to a Google-hosted decoder, so Draco-compressed meshes load with no
+setup. Only two containers are genuinely off by default, because their paths default to empty
+strings:
+
+| extension | A-Frame setting |
+|---|---|
+| `KHR_texture_basisu` (KTX2) | `basisTranscoderPath` |
+| `EXT_meshopt_compression` | `meshoptDecoderPath` |
+
+**The pages this studio generates now set all three**, so those models load too. If you are writing
+a page by hand, put this on the `<a-scene>`:
+
+```html
+gltf-model="dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.5/;
+            basisTranscoderPath: https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/basis/;
+            meshoptDecoderPath: https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/libs/meshopt_decoder.js"
+```
+
+Or, to avoid the dependency entirely, re-save as plain glTF:
 
 ```sh
 npm install @gltf-transform/cli
