@@ -9,66 +9,62 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap">
-<!-- The COMPILER. Pinned to 1.1.5, the same build the upstream tool uses, so compiled targets
-     behave identically. Runs entirely in this tab: no image is uploaded anywhere. -->
+<!-- COMPILER, pinned to 1.1.5 — the build upstream's own tool uses, so targets behave identically.
+     Runs in this tab: no image, model or compiled target is uploaded anywhere. -->
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-  *,*::before,*::after { box-sizing: border-box; margin:0; padding:0; }
-  :root { color-scheme: dark; }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  :root { color-scheme:dark; }
   body { background:#17191F; color:#F6F6F8; font-family:'Space Grotesk',-apple-system,sans-serif;
          -webkit-font-smoothing:antialiased; padding:32px 20px 72px; }
   .wrap { max-width:68rem; margin:0 auto; }
+  header { display:flex; align-items:center; gap:16px; padding-bottom:22px; border-bottom:1px solid #2E323D; }
+  header svg { width:40px; height:40px; }
+  h1 { font-size:1.35rem; font-weight:600; letter-spacing:-.02em; }
+  .sub { font-size:.8rem; color:#5C616D; margin-top:2px; }
+  .mono { font-family:'JetBrains Mono',ui-monospace,monospace; } .dim { color:#5C616D; }
   .cols { display:flex; gap:28px; align-items:flex-start; margin-top:24px; }
   nav { width:190px; flex:0 0 190px; position:sticky; top:24px; }
   nav button { display:block; width:100%; text-align:left; background:transparent; color:#AEB4BF;
     border:1px solid transparent; padding:10px 12px; border-radius:8px; margin-bottom:4px;
-    font-size:.88rem; font-weight:500; }
+    font-size:.88rem; font-weight:500; cursor:pointer; font-family:inherit; }
   nav button:hover { color:#F6F6F8; border-color:#2E323D; }
   nav button[aria-current="true"] { background:#1E212A; border-color:#3A3E48; color:#F6F6F8; }
-  nav .navnote { font-size:.7rem; line-height:1.6; color:#5C616D; padding:12px; margin-top:10px;
-    border-top:1px solid #2E323D; }
-  .panel { flex:1; min-width:0; }
-  .panel[hidden] { display:none; }
-  @media (max-width:760px) {
-    .cols { flex-direction:column; } nav { width:100%; flex:none; position:static; display:flex; gap:6px; }
-    nav .navnote { display:none; } nav button { margin:0; }
-  }
-  header { display:flex; align-items:center; gap:16px; padding-bottom:24px;
-           border-bottom:1px solid #2E323D; }
-  header svg { width:40px; height:40px; }
-  h1 { font-size:1.35rem; font-weight:600; letter-spacing:-.02em; }
-  .sub { font-size:.8rem; color:#5C616D; margin-top:2px; }
-  .mono { font-family:'JetBrains Mono',ui-monospace,monospace; }
-  section { margin-top:28px; padding:22px; background:#1E212A; border:1px solid #2E323D;
-            border-radius:12px; }
-  .step { font-family:'JetBrains Mono',monospace; font-size:.7rem; letter-spacing:.18em;
-          text-transform:uppercase; color:#E0A24C; }
+  nav .navnote { font-size:.7rem; line-height:1.6; color:#5C616D; padding:12px; margin-top:10px; border-top:1px solid #2E323D; }
+  .panel { flex:1; min-width:0; } .panel[hidden] { display:none; }
+  section { margin-bottom:20px; padding:22px; background:#1E212A; border:1px solid #2E323D; border-radius:12px; }
+  .step { font-family:'JetBrains Mono',monospace; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:#E0A24C; }
   h2 { font-size:1.05rem; font-weight:600; margin:8px 0 4px; letter-spacing:-.01em; }
   p.hint { font-size:.85rem; line-height:1.6; color:#AEB4BF; }
-  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:16px; }
-  button, .filebtn { font-family:inherit; font-size:.85rem; font-weight:500; padding:9px 16px;
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:14px; }
+  button,.filebtn { font-family:inherit; font-size:.85rem; font-weight:500; padding:9px 16px;
     border-radius:8px; border:1px solid transparent; cursor:pointer; background:#A15E1E; color:#fff; }
-  button.ghost, .filebtn { background:transparent; border-color:#3A3E48; color:#F6F6F8; }
+  button.ghost,.filebtn { background:transparent; border-color:#3A3E48; color:#F6F6F8; }
+  button.sm { padding:5px 10px; font-size:.75rem; }
   button:disabled { opacity:.4; cursor:not-allowed; }
-  input[type=file] { display:none; }
-  label.filebtn { display:inline-block; }
-  .thumb { max-width:200px; max-height:200px; border-radius:8px; border:1px solid #2E323D;
-           display:block; margin-top:14px; }
+  input[type=file] { display:none; } label.filebtn { display:inline-block; }
   .bar { height:6px; background:#2E323D; border-radius:3px; overflow:hidden; margin-top:14px; display:none; }
   .bar > i { display:block; height:100%; width:0; background:#E0A24C; transition:width .2s; }
-  .status { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:#AEB4BF; margin-top:10px; min-height:1.2em; }
+  .status { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:#AEB4BF; margin-top:10px; min-height:1.2em; line-height:1.5; }
   .ok { color:#6FBF95; } .err { color:#F87171; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:12px; margin-top:16px; }
-  .fld label { display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.1em;
-               color:#5C616D; margin-bottom:5px; }
-  .fld input { width:100%; padding:8px 10px; background:#17191F; border:1px solid #2E323D;
-               border-radius:7px; color:#F6F6F8; font-family:'JetBrains Mono',monospace; font-size:.8rem; }
-  iframe { width:100%; height:62vh; border:1px solid #2E323D; border-radius:10px; margin-top:16px;
-           background:#000; display:none; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:12px; margin-top:14px; }
+  .fld label { display:block; font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:#5C616D; margin-bottom:5px; }
+  .fld input,.fld select { width:100%; padding:8px 10px; background:#17191F; border:1px solid #2E323D;
+    border-radius:7px; color:#F6F6F8; font-family:'JetBrains Mono',monospace; font-size:.8rem; }
+  .chk { font-size:.8rem; color:#AEB4BF; display:flex; gap:7px; align-items:center; }
+  .chk input { width:auto; }
+  details { margin-top:16px; border-top:1px solid #2E323D; padding-top:14px; }
+  summary { cursor:pointer; font-size:.82rem; color:#E0A24C; font-weight:500; }
+  .titem { display:flex; gap:12px; align-items:center; padding:10px; background:#17191F;
+    border:1px solid #2E323D; border-radius:8px; margin-top:8px; font-size:.82rem; }
+  .titem img { width:48px; height:48px; object-fit:cover; border-radius:5px; flex:0 0 48px; }
+  .titem div { flex:1; line-height:1.5; }
+  iframe { width:100%; height:62vh; border:1px solid #2E323D; border-radius:10px; margin-top:14px; background:#000; display:none; }
   pre { margin-top:14px; padding:14px; background:#13161C; border:1px solid #2E323D; border-radius:8px;
-        overflow:auto; font-family:'JetBrains Mono',monospace; font-size:.72rem; line-height:1.55;
-        color:#AEB4BF; max-height:260px; display:none; white-space:pre; }
-  footer { margin-top:32px; font-size:.75rem; color:#5C616D; line-height:1.7; }
+    overflow:auto; font-family:'JetBrains Mono',monospace; font-size:.72rem; line-height:1.55;
+    color:#AEB4BF; max-height:280px; display:none; white-space:pre; }
+  footer { margin-top:28px; font-size:.75rem; color:#5C616D; line-height:1.7; }
   a { color:#E0A24C; text-decoration:none; } a:hover { text-decoration:underline; }
 </style>
 </head>
@@ -83,326 +79,196 @@
     <polygon points="0.09,0 19.4,19.24 19.28,19.37 0.05,0.07" fill="#e0a24c"/>
     <circle cx="19.97" cy="19.92" r="0.9" fill="#e0a24c"/>
   </svg>
-  <div>
-    <h1>AR Studio</h1>
-    <div class="sub">Compile an image target and preview a model. Everything runs in this tab — nothing is uploaded.</div>
-  </div>
+  <div><h1>AR Studio</h1>
+  <div class="sub">Compile targets, place content, preview, export. Everything runs in this tab — nothing is uploaded.</div></div>
 </header>
 
 <div class="cols">
 <nav>
   <button id="nav-image" aria-current="true">Image tracking</button>
   <button id="nav-face">Face tracking</button>
-  <div class="navnote">Both run entirely in this tab. Nothing you choose is uploaded.</div>
+  <div class="navnote">Settings persist in this browser. Files do not — re-pick them after a reload.</div>
 </nav>
-
 <div class="panel" id="panel-image">
 <section>
   <div class="step">Step 1</div>
-  <h2>Image target</h2>
-  <p class="hint">The thing a phone points at. Flat, matte and feature-rich tracks best — lots of
-  distinct corners, not large flat areas. Around 1000&nbsp;px on the long edge is plenty.</p>
+  <h2>Image targets</h2>
+  <p class="hint">Add one or more. Flat, matte and feature-rich tracks best — many distinct corners,
+  not large flat areas. ~1000&nbsp;px on the long edge is plenty. Several targets compile into a
+  single <span class="mono">.mind</span>, each addressed by its index.</p>
   <div class="row">
-    <label class="filebtn">Choose image<input type="file" id="img" accept="image/*"></label>
-    <button id="compile" disabled>Compile target</button>
+    <label class="filebtn">Add image(s)<input type="file" id="img" accept="image/*" multiple></label>
+    <button id="compile" disabled>Compile</button>
     <button id="dl" class="ghost" disabled>Download .mind</button>
   </div>
+  <div id="tlist"></div>
   <div class="bar" id="bar"><i id="barfill"></i></div>
   <div class="status" id="s1"></div>
-  <img class="thumb" id="thumb" alt="" hidden>
 </section>
 
 <section>
   <div class="step">Step 2</div>
-  <h2>Model</h2>
-  <p class="hint">A <span class="mono">.glb</span> is the safe choice — one file, geometry and
-  textures together. Keep it small: on a show floor it loads over congested Wi-Fi.</p>
-  <div class="row">
-    <label class="filebtn">Choose .glb<input type="file" id="glb" accept=".glb,model/gltf-binary"></label>
+  <h2>Content</h2>
+  <p class="hint">What appears on target #0. The target is one unit wide, so <span class="mono">scale 1</span> is roughly target-sized and <span class="mono">0 0 0</span> is its centre.</p>
+  <div class="grid">
+    <div class="fld"><label>Type</label><select id="ikind" data-persist>
+      <option value="glb">3D model (.glb)</option>
+      <option value="video">Video</option>
+      <option value="image">Image</option>
+      <option value="plane">Plane</option>
+      <option value="box">Box</option>
+      <option value="text">Text</option>
+    </select></div>
+  </div>
+  <div class="row" id="ifilerow">
+    <label class="filebtn">Choose file<input type="file" id="ifile"></label>
+  </div>
+  <div class="grid" id="itextrow">
+    <div class="fld" style="grid-column:1/-1"><label>Text</label><input id="itext" value="Vértice" data-persist></div>
+  </div>
+  <div class="grid" id="icolorrow">
+    <div class="fld"><label>Colour</label><input id="icolor" value="#E0A24C" data-persist></div>
+  </div>
+  <div class="grid" id="iwhrow">
+    <div class="fld"><label>Width</label><input id="iw" value="1" data-persist></div>
+    <div class="fld"><label>Height</label><input id="ih" value="0.56" data-persist></div>
+  </div>
+  <div class="grid">
+    <div class="fld"><label>Scale</label><input id="isc" value="0.5" data-persist></div>
+    <div class="fld"><label>Pos X</label><input id="ipx" value="0" data-persist></div>
+    <div class="fld"><label>Pos Y</label><input id="ipy" value="0" data-persist></div>
+    <div class="fld"><label>Pos Z</label><input id="ipz" value="0" data-persist></div>
+    <div class="fld"><label>Rot X</label><input id="irx" value="0" data-persist></div>
+    <div class="fld"><label>Rot Y</label><input id="iry" value="0" data-persist></div>
+    <div class="fld"><label>Rot Z</label><input id="irz" value="0" data-persist></div>
   </div>
   <div class="status" id="s2"></div>
+  <details>
+    <summary>Tracking options</summary>
+    <div class="grid">
+    <div class="fld"><label>maxTrack</label><input id="imaxtrack" value="1" data-persist></div>
+    <div class="fld"><label>filterMinCF</label><input id="imincf" value="0.001" data-persist></div>
+    <div class="fld"><label>filterBeta</label><input id="ibeta" value="1000" data-persist></div>
+    <div class="fld"><label>warmupTolerance</label><input id="iwarmup" value="5" data-persist></div>
+    <div class="fld"><label>missTolerance</label><input id="imiss" value="5" data-persist></div>
+    </div>
+    <div class="row">
+    <label class="chk"><input type="checkbox" id="iuiscan" checked data-persist> Scanning overlay</label>
+    <label class="chk"><input type="checkbox" id="iuiload" checked data-persist> Loading overlay</label>
+    <label class="chk"><input type="checkbox" id="istats" data-persist> Show stats</label>
+    </div>
+    <p class="hint" style="margin-top:10px"><b>filterMinCF</b> lower = smoother but laggier · <b>filterBeta</b> higher = more responsive. Library defaults are 0.001 and 1000. <b>warmupTolerance</b> frames before a target counts as found, <b>missTolerance</b> before it counts as lost.</p>
+  </details>
 </section>
 
 <section>
   <div class="step">Step 3</div>
-  <h2>Placement</h2>
-  <p class="hint">Where the model sits relative to the target. The target is one unit wide, so
-  <span class="mono">0 0 0</span> is its centre and <span class="mono">scale 1</span> means
-  roughly target-sized.</p>
-  <div class="grid">
-    <div class="fld"><label>Scale</label><input id="sc" value="0.5"></div>
-    <div class="fld"><label>Pos X</label><input id="px" value="0"></div>
-    <div class="fld"><label>Pos Y</label><input id="py" value="0"></div>
-    <div class="fld"><label>Pos Z</label><input id="pz" value="0"></div>
-    <div class="fld"><label>Rot X</label><input id="rx" value="0"></div>
-    <div class="fld"><label>Rot Y</label><input id="ry" value="0"></div>
-    <div class="fld"><label>Rot Z</label><input id="rz" value="0"></div>
-  </div>
-</section>
-
-<section>
-  <div class="step">Step 4</div>
-  <h2>Preview</h2>
-  <p class="hint">Runs the real tracker with your compiled target and model. It will ask for the
-  camera. Point it at the target — on screen works, but print tracks better.</p>
+  <h2>Preview &amp; export</h2>
+  <p class="hint">The preview runs the real tracker. Export gives you a folder that works as-is.</p>
   <div class="row">
     <button id="run" disabled>Start preview</button>
     <button id="stop" class="ghost">Stop</button>
-    <button id="gen" class="ghost" disabled>Generate index.html</button>
+    <button id="gen" class="ghost">Generate index.html</button>
+    <button id="bundle" class="ghost" disabled>Download bundle (.zip)</button>
   </div>
   <div class="status" id="s4"></div>
   <iframe id="pv" allow="camera; gyroscope; accelerometer; magnetometer; xr-spatial-tracking"></iframe>
   <pre id="out"></pre>
 </section>
-
-</div><!-- /panel-image -->
-
+</div>
 <div class="panel" id="panel-face" hidden>
 <section>
   <div class="step">Step 1</div>
-  <h2>Model</h2>
-  <p class="hint">Face tracking compiles nothing — there is no target. A pretrained face mesh runs
-  at capture time and the model attaches to a landmark on it.</p>
-  <div class="row">
-    <label class="filebtn">Choose .glb<input type="file" id="fglb" accept=".glb,model/gltf-binary"></label>
+  <h2>Content</h2>
+  <p class="hint">Face tracking compiles nothing — there is no target. A pretrained mesh runs at capture time and the content rides on one of its landmarks.</p>
+  <div class="grid">
+    <div class="fld"><label>Type</label><select id="fkind" data-persist>
+      <option value="glb">3D model (.glb)</option>
+      <option value="video">Video</option>
+      <option value="image">Image</option>
+      <option value="plane">Plane</option>
+      <option value="box">Box</option>
+      <option value="text">Text</option>
+    </select></div>
+  </div>
+  <div class="row" id="ffilerow">
+    <label class="filebtn">Choose file<input type="file" id="ffile"></label>
+  </div>
+  <div class="grid" id="ftextrow">
+    <div class="fld" style="grid-column:1/-1"><label>Text</label><input id="ftext" value="Vértice" data-persist></div>
+  </div>
+  <div class="grid" id="fcolorrow">
+    <div class="fld"><label>Colour</label><input id="fcolor" value="#E0A24C" data-persist></div>
+  </div>
+  <div class="grid" id="fwhrow">
+    <div class="fld"><label>Width</label><input id="fw" value="1" data-persist></div>
+    <div class="fld"><label>Height</label><input id="fh" value="0.56" data-persist></div>
+  </div>
+  <div class="grid">
+    <div class="fld"><label>Scale</label><input id="fsc" value="0.1" data-persist></div>
+    <div class="fld"><label>Pos X</label><input id="fpx" value="0" data-persist></div>
+    <div class="fld"><label>Pos Y</label><input id="fpy" value="0" data-persist></div>
+    <div class="fld"><label>Pos Z</label><input id="fpz" value="0" data-persist></div>
+    <div class="fld"><label>Rot X</label><input id="frx" value="0" data-persist></div>
+    <div class="fld"><label>Rot Y</label><input id="fry" value="0" data-persist></div>
+    <div class="fld"><label>Rot Z</label><input id="frz" value="0" data-persist></div>
   </div>
   <div class="status" id="f1"></div>
+  <details>
+    <summary>Tracking options</summary>
+    <div class="grid">
+    <div class="fld"><label>filterMinCF</label><input id="fmincf" value="0.001" data-persist></div>
+    <div class="fld"><label>filterBeta</label><input id="fbeta" value="1000" data-persist></div>
+    <div class="fld"><label>Anchor index</label><input id="fanchor" value="168" data-persist></div>
+    </div>
+    <div class="row">
+    <label class="chk"><input type="checkbox" id="focc" checked data-persist> Face occluder</label>
+    <label class="chk"><input type="checkbox" id="fmirror" data-persist> Disable mirror</label>
+    <label class="chk"><input type="checkbox" id="fuiscan" checked data-persist> Scanning overlay</label>
+    <label class="chk"><input type="checkbox" id="fuiload" checked data-persist> Loading overlay</label>
+    <label class="chk"><input type="checkbox" id="fstats" data-persist> Show stats</label>
+    </div>
+    <p class="hint" style="margin-top:10px"><b>filterMinCF</b> lower = smoother but laggier · <b>filterBeta</b> higher = more responsive. Library defaults are 0.001 and 1000.</p>
+  </details>
+  <div class="row">
+    <button class="ghost sm anchor" data-i="168">168 · between eyes</button>
+    <button class="ghost sm anchor" data-i="10">10 · forehead</button>
+    <button class="ghost sm anchor" data-i="1">1 · nose tip</button>
+    <button class="ghost sm anchor" data-i="152">152 · chin</button>
+  </div>
+  <p class="hint" style="margin-top:8px">Anchors are MediaPipe FaceMesh indices,
+  <span class="mono">0–467</span>; the presets are the commonly used ones. The occluder is a
+  head-shaped mask hiding geometry behind the face — without it, glasses arms and hats render
+  straight through the head.</p>
 </section>
 
 <section>
   <div class="step">Step 2</div>
-  <h2>Anchor</h2>
-  <p class="hint">Which landmark the model rides on. These are MediaPipe FaceMesh indices,
-  <span class="mono">0–467</span> — the presets are the commonly used ones; any index is valid.</p>
-  <div class="row">
-    <button class="ghost anchor" data-i="168">168 · between eyes</button>
-    <button class="ghost anchor" data-i="10">10 · forehead</button>
-    <button class="ghost anchor" data-i="1">1 · nose tip</button>
-    <button class="ghost anchor" data-i="152">152 · chin</button>
-  </div>
-  <div class="grid">
-    <div class="fld"><label>Anchor index</label><input id="anchor" value="168"></div>
-    <div class="fld"><label>Scale</label><input id="fsc" value="0.1"></div>
-    <div class="fld"><label>Pos X</label><input id="fpx" value="0"></div>
-    <div class="fld"><label>Pos Y</label><input id="fpy" value="0"></div>
-    <div class="fld"><label>Pos Z</label><input id="fpz" value="0"></div>
-    <div class="fld"><label>Rot X</label><input id="frx" value="0"></div>
-    <div class="fld"><label>Rot Y</label><input id="fry" value="0"></div>
-    <div class="fld"><label>Rot Z</label><input id="frz" value="0"></div>
-  </div>
-  <div class="row">
-    <label style="font-size:.85rem;color:#AEB4BF;display:flex;gap:8px;align-items:center">
-      <input type="checkbox" id="occ" checked style="width:auto"> Face occluder
-    </label>
-  </div>
-  <p class="hint" style="margin-top:8px">The occluder is a head-shaped mask that hides whatever
-  sits behind the face. Without it, glasses arms and hats render straight through the head.</p>
-</section>
-
-<section>
-  <div class="step">Step 3</div>
-  <h2>Preview</h2>
-  <p class="hint">Runs the real face tracker on your own camera. No target to point at — it
-  attaches as soon as it finds a face.</p>
+  <h2>Preview &amp; export</h2>
+  <p class="hint">Runs the real face tracker on your camera. Nothing to point at — it attaches as
+  soon as it finds a face.</p>
   <div class="row">
     <button id="frun" disabled>Start preview</button>
     <button id="fstop" class="ghost">Stop</button>
-    <button id="fgen" class="ghost" disabled>Generate index.html</button>
+    <button id="fgen" class="ghost">Generate index.html</button>
   </div>
   <div class="status" id="f3"></div>
   <iframe id="fpv" allow="camera; gyroscope; accelerometer; magnetometer; xr-spatial-tracking"></iframe>
   <pre id="fout"></pre>
 </section>
-</div><!-- /panel-face -->
-</div><!-- /cols -->
+</div>
+</div>
 
 <footer>
-  Compiler pinned to <span class="mono">mind-ar@1.1.5</span>, runtime to
+  Compiler pinned to <span class="mono">mind-ar@1.1.5</span>; runtime
   <span class="mono">mind-ar@1.2.1</span> + <span class="mono">A-Frame 1.4.1</span> — the versions
-  the upstream tool and our working experience use. A <span class="mono">.mind</span> is compiled
-  against one specific image and tracks only that image.<br>
-  Determinism, and why the toolchain is pinned:
+  upstream's own tool and our working experience use. A <span class="mono">.mind</span> is compiled
+  against specific images and tracks only those.<br>
+  Options are read from the library's component schemas, not its docs, which do not cover face
+  tracking. Determinism and why the toolchain is pinned:
   <a href="https://github.com/verticecriativo/vertice-ar-compile">vertice-ar-compile</a>.
 </footer>
 </div>
-
-<script>
-const $ = (id) => document.getElementById(id);
-const say = (el, msg, cls) => { const n = $(el); n.textContent = msg; n.className = "status " + (cls||""); };
-
-let targetImage = null, mindBuffer = null, mindURL = null, glbURL = null, glbName = "";
-
-$("img").addEventListener("change", async (e) => {
-  const f = e.target.files[0]; if (!f) return;
-  const url = URL.createObjectURL(f);
-  const im = new Image();
-  im.onload = () => {
-    targetImage = im;
-    $("thumb").src = url; $("thumb").hidden = false;
-    $("compile").disabled = false;
-    say("s1", `${f.name} — ${im.width}x${im.height}, ${(f.size/1024).toFixed(0)} KB. Ready to compile.`);
-    if (Math.max(im.width, im.height) > 2048)
-      say("s1", `${f.name} — ${im.width}x${im.height}. That is large; ~1000 px is usually enough and compiles far faster.`, "err");
-  };
-  im.onerror = () => say("s1", "Could not read that image.", "err");
-  im.src = url;
-});
-
-$("compile").addEventListener("click", async () => {
-  if (!targetImage) return;
-  $("compile").disabled = true; $("dl").disabled = true;
-  $("bar").style.display = "block"; $("barfill").style.width = "0%";
-  say("s1", "Compiling… this is CPU-bound and can take a minute.");
-  try {
-    const compiler = new window.MINDAR.IMAGE.Compiler();
-    await compiler.compileImageTargets([targetImage], (p) => {
-      $("barfill").style.width = Math.max(2, Math.round(p)) + "%";
-    });
-    mindBuffer = await compiler.exportData();
-    if (mindURL) URL.revokeObjectURL(mindURL);
-    mindURL = URL.createObjectURL(new Blob([mindBuffer]));
-    $("barfill").style.width = "100%";
-    $("dl").disabled = false; $("gen").disabled = false;
-    if (glbURL) $("run").disabled = false;
-    say("s1", `Compiled — ${(mindBuffer.byteLength/1024).toFixed(0)} KB. Download it, or preview below.`, "ok");
-  } catch (err) {
-    say("s1", "Compile failed: " + err.message, "err");
-  } finally { $("compile").disabled = false; }
-});
-
-$("dl").addEventListener("click", () => {
-  if (!mindURL) return;
-  const a = document.createElement("a");
-  a.href = mindURL; a.download = "target.mind"; a.click();
-});
-
-$("glb").addEventListener("change", (e) => {
-  const f = e.target.files[0]; if (!f) return;
-  if (glbURL) URL.revokeObjectURL(glbURL);
-  glbURL = URL.createObjectURL(f); glbName = f.name;
-  say("s2", `${f.name} — ${(f.size/1024/1024).toFixed(2)} MB`
-    + (f.size > 3*1024*1024 ? "  ⚠ over 3 MB is slow on venue Wi-Fi" : ""),
-    f.size > 3*1024*1024 ? "err" : "ok");
-  if (mindURL) $("run").disabled = false;
-});
-
-const placement = () => ({
-  scale: $("sc").value.trim() || "1",
-  pos: [$("px").value.trim()||"0", $("py").value.trim()||"0", $("pz").value.trim()||"0"].join(" "),
-  rot: [$("rx").value.trim()||"0", $("ry").value.trim()||"0", $("rz").value.trim()||"0"].join(" ")
-});
-
-// The preview runs in a same-origin iframe so the runtime (1.2.1) cannot collide with the
-// compiler (1.1.5) loaded on this page. srcdoc inherits our origin, so the blob: URLs resolve.
-const sceneHTML = (mind, model, p) => `<!DOCTYPE html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="https://aframe.io/releases/1.4.1/aframe.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js"><\/script>
-<style>body{margin:0;overflow:hidden}</style></head><body>
-<a-scene mindar-image="imageTargetSrc: ${mind}; uiScanning: no; uiLoading: no; maxTrack: 1"
-  embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
-  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-  <a-assets><a-asset-item id="m" src="${model}"></a-asset-item></a-assets>
-  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-  <a-entity mindar-image-target="targetIndex: 0">
-    <a-gltf-model src="#m" position="${p.pos}" rotation="${p.rot}"
-      scale="${p.scale} ${p.scale} ${p.scale}" animation-mixer></a-gltf-model>
-  </a-entity>
-</a-scene></body></html>`;
-
-$("run").addEventListener("click", () => {
-  if (!mindURL || !glbURL) return;
-  $("pv").srcdoc = sceneHTML(mindURL, glbURL, placement());
-  $("pv").style.display = "block";
-  say("s4", "Allow the camera, then point it at the target. Nothing appears until it locks on.");
-});
-
-$("stop").addEventListener("click", () => {
-  $("pv").srcdoc = ""; $("pv").style.display = "none"; say("s4", "");
-});
-
-$("gen").addEventListener("click", () => {
-  const p = placement();
-  // sceneHTML already yields a correct closing tag: in a template literal "<\/script>"
-  // evaluates to the real thing. The backslash exists only so the HTML parser does not end
-  // this script element early — which a literal one in source would do.
-  $("out").textContent = sceneHTML("./target.mind", "./model.glb", p)
-    + "\n\n<!-- Save as index.html next to target.mind and " + (glbName || "model.glb")
-    + " (renamed model.glb). Keep the CNAME file if you drop this into vertice-ar. -->";
-  $("out").style.display = "block";
-  say("s4", "Generated below — the paths are relative, so put all three files in one folder.", "ok");
-});
-// ---- sidebar ----
-const panels = { image: ["nav-image","panel-image"], face: ["nav-face","panel-face"] };
-function show(which) {
-  for (const [k,[nav,pan]] of Object.entries(panels)) {
-    $(nav).setAttribute("aria-current", String(k === which));
-    $(pan).hidden = (k !== which);
-  }
-  // stop any running camera when switching away
-  $("pv").srcdoc = ""; $("pv").style.display = "none";
-  $("fpv").srcdoc = ""; $("fpv").style.display = "none";
-}
-$("nav-image").addEventListener("click", () => show("image"));
-$("nav-face").addEventListener("click", () => show("face"));
-
-// ---- face tracking ----
-let fglbURL = null, fglbName = "";
-$("fglb").addEventListener("change", (e) => {
-  const f = e.target.files[0]; if (!f) return;
-  if (fglbURL) URL.revokeObjectURL(fglbURL);
-  fglbURL = URL.createObjectURL(f); fglbName = f.name;
-  $("frun").disabled = false; $("fgen").disabled = false;
-  say("f1", `${f.name} — ${(f.size/1024/1024).toFixed(2)} MB`
-    + (f.size > 3*1024*1024 ? "  ⚠ over 3 MB is slow on venue Wi-Fi" : ""),
-    f.size > 3*1024*1024 ? "err" : "ok");
-});
-
-document.querySelectorAll("button.anchor").forEach((b) =>
-  b.addEventListener("click", () => { $("anchor").value = b.dataset.i; }));
-
-const fplacement = () => ({
-  anchor: parseInt($("anchor").value, 10) || 0,
-  scale: $("fsc").value.trim() || "1",
-  pos: [$("fpx").value.trim()||"0", $("fpy").value.trim()||"0", $("fpz").value.trim()||"0"].join(" "),
-  rot: [$("frx").value.trim()||"0", $("fry").value.trim()||"0", $("frz").value.trim()||"0"].join(" "),
-  occ: $("occ").checked
-});
-
-const faceHTML = (model, p) => `<!DOCTYPE html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="https://aframe.io/releases/1.4.1/aframe.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-face-aframe.prod.js"><\/script>
-<style>body{margin:0;overflow:hidden}</style></head><body>
-<a-scene mindar-face embedded color-space="sRGB"
-  renderer="colorManagement: true, physicallyCorrectLights"
-  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-  <a-assets><a-asset-item id="m" src="${model}"></a-asset-item></a-assets>
-  <a-camera active="false" position="0 0 0"></a-camera>${p.occ ? `
-  <a-entity mindar-face-occluder></a-entity>` : ""}
-  <a-entity mindar-face-target="anchorIndex: ${p.anchor}">
-    <a-gltf-model src="#m" position="${p.pos}" rotation="${p.rot}"
-      scale="${p.scale} ${p.scale} ${p.scale}" animation-mixer></a-gltf-model>
-  </a-entity>
-</a-scene></body></html>`;
-
-$("frun").addEventListener("click", () => {
-  if (!fglbURL) return;
-  $("fpv").srcdoc = faceHTML(fglbURL, fplacement());
-  $("fpv").style.display = "block";
-  say("f3", "Allow the camera. The model attaches as soon as a face is found.");
-});
-$("fstop").addEventListener("click", () => {
-  $("fpv").srcdoc = ""; $("fpv").style.display = "none"; say("f3", "");
-});
-$("fgen").addEventListener("click", () => {
-  $("fout").textContent = faceHTML("./model.glb", fplacement())
-    + "\n\n<!-- Save as index.html next to " + (fglbName || "model.glb")
-    + " (renamed model.glb). No .mind file: face tracking compiles nothing. -->";
-  $("fout").style.display = "block";
-  say("f3", "Generated below. Only two files needed — this page and the model.", "ok");
-});
-
-</script>
+<script src="studio.js"></script>
 </body>
 </html>

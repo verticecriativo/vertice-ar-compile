@@ -11,19 +11,31 @@ This repo currently holds the **determinism harness** — the measurement the wh
 — compile an image target and preview a model, entirely in the browser. Nothing is uploaded: the
 image, the compiled `.mind` and the `.glb` never leave the tab.
 
-**Image tracking** — pick an image → compile → download `target.mind`; pick a `.glb`, set scale,
-position and rotation, preview with the real tracker, and generate a ready-to-use `index.html`.
+**Image tracking** — add one or more images, compile them into a single `.mind` (each addressed by
+its index), choose content, preview against the real tracker, then export either a generated
+`index.html` or a **.zip bundle** that runs as-is.
 
-**Face tracking** — no compile step at all. A pretrained face mesh runs at capture time, so there
-is no target: pick a `.glb`, choose the **anchor index** (MediaPipe FaceMesh landmark, `0–467`;
-presets for 168 between-eyes, 10 forehead, 1 nose tip, 152 chin), set placement, and preview on
-your own camera. The **face occluder** is on by default — it is a head-shaped mask that hides
-geometry behind the face, without which glasses arms and hats render straight through the head.
+**Face tracking** — no compile step. A pretrained mesh runs at capture time, so content rides on an
+**anchor index** (MediaPipe FaceMesh landmark, `0–467`; presets for 168 between-eyes, 10 forehead,
+1 nose tip, 152 chin). `faceOccluder` is on by default — a head-shaped mask hiding geometry behind
+the face, without which glasses arms and hats render through the head.
 
-Versions are pinned deliberately: **compiler `mind-ar@1.1.5`** (the build upstream's own tool uses,
-so targets behave identically) and **runtime `mind-ar@1.2.1` + A-Frame 1.4.1** (what our working
-experience runs). The preview is a same-origin `srcdoc` iframe precisely so the two versions cannot
-collide on one page.
+**Content types** — `.glb`, video, image, plane, box or text, each with scale, position and rotation.
+
+**Tracking options**, taken from the component schemas rather than the docs:
+
+| | |
+|---|---|
+| `maxTrack` | how many targets track at once (default 1) |
+| `filterMinCF` | One Euro filter cutoff — lower is smoother but laggier (default 0.001) |
+| `filterBeta` | filter beta — higher is more responsive (default 1000) |
+| `warmupTolerance` | frames before a target counts as found (default 5) |
+| `missTolerance` | frames before it counts as lost (default 5) |
+| `uiScanning` / `uiLoading` | the built-in overlays |
+| `showStats` | the debug overlay |
+| `disableFaceMirror` | face mode only |
+
+Settings persist in the browser; files do not, since blob URLs cannot survive a reload.
 
 It also removes a dependency: until now the only way to compile a target was upstream's GitHub
 Pages, which has had no commit since June 2024.
