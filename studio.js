@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20j";
+const BUILD = "2026-10-20k";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -284,6 +284,31 @@ $("bundle").addEventListener("click", async () => {
     setTimeout(() => URL.revokeObjectURL(u), 10000);
     say("s4", "Bundle downloaded — unzip it into the repo root and it runs as-is.", "ok");
   } catch (err) { say("s4", "Bundle failed: " + err.message, "err"); }
+});
+
+// A known-good model, bundled in this repo. If the preview does nothing with THIS file, the
+// problem is the setup rather than the model — which is the whole point of shipping it, and means
+// the workflow does not depend on any third-party site staying up.
+$("ftest").addEventListener("click", async () => {
+  say("f1", "Loading the bundled test head…");
+  try {
+    const res = await fetch("assets/redpanda-head.glb");
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const blob = await res.blob();
+    const file = new File([blob], "redpanda-head.glb", { type: "model/gltf-binary" });
+    if (window.__assets.f) URL.revokeObjectURL(window.__assets.f.url);
+    window.__assets.f = { url: URL.createObjectURL(file), name: file.name, file: file };
+    $("fkind").value = "glb";
+    $("fsc").value = "3";            // measured: ~60% of frame height on a face at arm's length
+    $("fmorph").checked = true;
+    $("fanchor").value = "168";
+    $("fkind").dispatchEvent(new Event("change"));
+    say("f1", `${file.name} — ${(file.size / 1048576).toFixed(2)} MB · bundled, 51/51 ARKit`, "ok");
+    inspectModel(file);
+    saveSettings();
+  } catch (e) {
+    say("f1", "Could not load the bundled test head — " + e.message, "err");
+  }
 });
 
 // ---------- FACE MODE ----------
