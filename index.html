@@ -71,6 +71,47 @@
   #qprev svg { width:100%; height:auto; display:block; }
   footer { margin-top:28px; font-size:.75rem; color:#5C616D; line-height:1.7; }
   a { color:#E0A24C; text-decoration:none; } a:hover { text-decoration:underline; }
+
+  /* ---------- PHONE ----------
+     The desktop layout puts a fixed 190px nav beside the panel. At 390px that left the panel
+     132px wide and every step collapsed into a column one or two words across. On a phone the
+     nav becomes a tab strip above the panel instead, and the panel gets the full width. */
+  @media (max-width: 760px) {
+    body { padding:18px 14px 52px; }
+    header { gap:12px; padding-bottom:16px; }
+    header svg { width:32px; height:32px; flex:0 0 32px; }
+    h1 { font-size:1.1rem; }
+    .sub { font-size:.75rem; line-height:1.5; }
+
+    .cols { flex-direction:column; gap:14px; margin-top:16px; }
+    nav { width:100%; flex:none; position:static; display:flex; flex-wrap:wrap; gap:6px; }
+    nav button { width:auto; flex:1 1 auto; min-width:0; text-align:center; margin-bottom:0;
+      border-color:#2E323D; padding:10px 10px; font-size:.82rem; }
+    /* The note keeps its own full-width row rather than being dropped — "files do not persist"
+       is the one thing on this page a phone user most needs to know. */
+    nav .navnote { flex:1 0 100%; margin-top:4px; padding:10px 2px 0; font-size:.72rem; }
+
+    section { padding:16px; margin-bottom:14px; }
+    h2 { font-size:1rem; }
+    p.hint { font-size:.82rem; }
+    .row { gap:8px; margin-top:12px; }
+    button, .filebtn { padding:10px 14px; }
+    /* Two columns, not three: at 362px a third column clips select text like "H \u00b7 30%"
+       and wraps labels such as "ERROR CORRECTION" onto two lines. */
+    .grid { grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; }
+    /* 16px is the threshold below which iOS Safari zooms the whole page on focus — which is
+       itself a large part of why the form felt cramped. */
+    .fld input, .fld select { font-size:16px; padding:9px 10px; }
+    .titem { font-size:.78rem; gap:10px; }
+    #qprev { max-width:100%; padding:14px; }
+    pre { font-size:.68rem; max-height:220px; }
+    footer { margin-top:20px; font-size:.72rem; }
+  }
+
+  /* Small phones: let the three tabs stack rather than squeeze to two characters. */
+  @media (max-width: 380px) {
+    nav button { flex:1 1 100%; text-align:left; }
+  }
 </style>
 </head>
 <body>
@@ -349,6 +390,7 @@
   Options are read from the library's component schemas, not its docs, which do not cover face
   tracking. Determinism and why the toolchain is pinned:
   <a href="https://github.com/verticecriativo/vertice-ar-compile">vertice-ar-compile</a>.
+  <span class="mono dim">· build <span id="buildstamp">—</span></span>
 </footer>
 </div>
 <script src="studio.js"></script>
