@@ -17,7 +17,22 @@
   :root { color-scheme: dark; }
   body { background:#17191F; color:#F6F6F8; font-family:'Space Grotesk',-apple-system,sans-serif;
          -webkit-font-smoothing:antialiased; padding:32px 20px 72px; }
-  .wrap { max-width:60rem; margin:0 auto; }
+  .wrap { max-width:68rem; margin:0 auto; }
+  .cols { display:flex; gap:28px; align-items:flex-start; margin-top:24px; }
+  nav { width:190px; flex:0 0 190px; position:sticky; top:24px; }
+  nav button { display:block; width:100%; text-align:left; background:transparent; color:#AEB4BF;
+    border:1px solid transparent; padding:10px 12px; border-radius:8px; margin-bottom:4px;
+    font-size:.88rem; font-weight:500; }
+  nav button:hover { color:#F6F6F8; border-color:#2E323D; }
+  nav button[aria-current="true"] { background:#1E212A; border-color:#3A3E48; color:#F6F6F8; }
+  nav .navnote { font-size:.7rem; line-height:1.6; color:#5C616D; padding:12px; margin-top:10px;
+    border-top:1px solid #2E323D; }
+  .panel { flex:1; min-width:0; }
+  .panel[hidden] { display:none; }
+  @media (max-width:760px) {
+    .cols { flex-direction:column; } nav { width:100%; flex:none; position:static; display:flex; gap:6px; }
+    nav .navnote { display:none; } nav button { margin:0; }
+  }
   header { display:flex; align-items:center; gap:16px; padding-bottom:24px;
            border-bottom:1px solid #2E323D; }
   header svg { width:40px; height:40px; }
@@ -74,6 +89,14 @@
   </div>
 </header>
 
+<div class="cols">
+<nav>
+  <button id="nav-image" aria-current="true">Image tracking</button>
+  <button id="nav-face">Face tracking</button>
+  <div class="navnote">Both run entirely in this tab. Nothing you choose is uploaded.</div>
+</nav>
+
+<div class="panel" id="panel-image">
 <section>
   <div class="step">Step 1</div>
   <h2>Image target</h2>
@@ -131,6 +154,67 @@
   <iframe id="pv" allow="camera; gyroscope; accelerometer; magnetometer; xr-spatial-tracking"></iframe>
   <pre id="out"></pre>
 </section>
+
+</div><!-- /panel-image -->
+
+<div class="panel" id="panel-face" hidden>
+<section>
+  <div class="step">Step 1</div>
+  <h2>Model</h2>
+  <p class="hint">Face tracking compiles nothing — there is no target. A pretrained face mesh runs
+  at capture time and the model attaches to a landmark on it.</p>
+  <div class="row">
+    <label class="filebtn">Choose .glb<input type="file" id="fglb" accept=".glb,model/gltf-binary"></label>
+  </div>
+  <div class="status" id="f1"></div>
+</section>
+
+<section>
+  <div class="step">Step 2</div>
+  <h2>Anchor</h2>
+  <p class="hint">Which landmark the model rides on. These are MediaPipe FaceMesh indices,
+  <span class="mono">0–467</span> — the presets are the commonly used ones; any index is valid.</p>
+  <div class="row">
+    <button class="ghost anchor" data-i="168">168 · between eyes</button>
+    <button class="ghost anchor" data-i="10">10 · forehead</button>
+    <button class="ghost anchor" data-i="1">1 · nose tip</button>
+    <button class="ghost anchor" data-i="152">152 · chin</button>
+  </div>
+  <div class="grid">
+    <div class="fld"><label>Anchor index</label><input id="anchor" value="168"></div>
+    <div class="fld"><label>Scale</label><input id="fsc" value="0.1"></div>
+    <div class="fld"><label>Pos X</label><input id="fpx" value="0"></div>
+    <div class="fld"><label>Pos Y</label><input id="fpy" value="0"></div>
+    <div class="fld"><label>Pos Z</label><input id="fpz" value="0"></div>
+    <div class="fld"><label>Rot X</label><input id="frx" value="0"></div>
+    <div class="fld"><label>Rot Y</label><input id="fry" value="0"></div>
+    <div class="fld"><label>Rot Z</label><input id="frz" value="0"></div>
+  </div>
+  <div class="row">
+    <label style="font-size:.85rem;color:#AEB4BF;display:flex;gap:8px;align-items:center">
+      <input type="checkbox" id="occ" checked style="width:auto"> Face occluder
+    </label>
+  </div>
+  <p class="hint" style="margin-top:8px">The occluder is a head-shaped mask that hides whatever
+  sits behind the face. Without it, glasses arms and hats render straight through the head.</p>
+</section>
+
+<section>
+  <div class="step">Step 3</div>
+  <h2>Preview</h2>
+  <p class="hint">Runs the real face tracker on your own camera. No target to point at — it
+  attaches as soon as it finds a face.</p>
+  <div class="row">
+    <button id="frun" disabled>Start preview</button>
+    <button id="fstop" class="ghost">Stop</button>
+    <button id="fgen" class="ghost" disabled>Generate index.html</button>
+  </div>
+  <div class="status" id="f3"></div>
+  <iframe id="fpv" allow="camera; gyroscope; accelerometer; magnetometer; xr-spatial-tracking"></iframe>
+  <pre id="fout"></pre>
+</section>
+</div><!-- /panel-face -->
+</div><!-- /cols -->
 
 <footer>
   Compiler pinned to <span class="mono">mind-ar@1.1.5</span>, runtime to
@@ -248,6 +332,77 @@ $("gen").addEventListener("click", () => {
   $("out").style.display = "block";
   say("s4", "Generated below — the paths are relative, so put all three files in one folder.", "ok");
 });
+// ---- sidebar ----
+const panels = { image: ["nav-image","panel-image"], face: ["nav-face","panel-face"] };
+function show(which) {
+  for (const [k,[nav,pan]] of Object.entries(panels)) {
+    $(nav).setAttribute("aria-current", String(k === which));
+    $(pan).hidden = (k !== which);
+  }
+  // stop any running camera when switching away
+  $("pv").srcdoc = ""; $("pv").style.display = "none";
+  $("fpv").srcdoc = ""; $("fpv").style.display = "none";
+}
+$("nav-image").addEventListener("click", () => show("image"));
+$("nav-face").addEventListener("click", () => show("face"));
+
+// ---- face tracking ----
+let fglbURL = null, fglbName = "";
+$("fglb").addEventListener("change", (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  if (fglbURL) URL.revokeObjectURL(fglbURL);
+  fglbURL = URL.createObjectURL(f); fglbName = f.name;
+  $("frun").disabled = false; $("fgen").disabled = false;
+  say("f1", `${f.name} — ${(f.size/1024/1024).toFixed(2)} MB`
+    + (f.size > 3*1024*1024 ? "  ⚠ over 3 MB is slow on venue Wi-Fi" : ""),
+    f.size > 3*1024*1024 ? "err" : "ok");
+});
+
+document.querySelectorAll("button.anchor").forEach((b) =>
+  b.addEventListener("click", () => { $("anchor").value = b.dataset.i; }));
+
+const fplacement = () => ({
+  anchor: parseInt($("anchor").value, 10) || 0,
+  scale: $("fsc").value.trim() || "1",
+  pos: [$("fpx").value.trim()||"0", $("fpy").value.trim()||"0", $("fpz").value.trim()||"0"].join(" "),
+  rot: [$("frx").value.trim()||"0", $("fry").value.trim()||"0", $("frz").value.trim()||"0"].join(" "),
+  occ: $("occ").checked
+});
+
+const faceHTML = (model, p) => `<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://aframe.io/releases/1.4.1/aframe.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-face-aframe.prod.js"><\/script>
+<style>body{margin:0;overflow:hidden}</style></head><body>
+<a-scene mindar-face embedded color-space="sRGB"
+  renderer="colorManagement: true, physicallyCorrectLights"
+  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-assets><a-asset-item id="m" src="${model}"></a-asset-item></a-assets>
+  <a-camera active="false" position="0 0 0"></a-camera>${p.occ ? `
+  <a-entity mindar-face-occluder></a-entity>` : ""}
+  <a-entity mindar-face-target="anchorIndex: ${p.anchor}">
+    <a-gltf-model src="#m" position="${p.pos}" rotation="${p.rot}"
+      scale="${p.scale} ${p.scale} ${p.scale}" animation-mixer></a-gltf-model>
+  </a-entity>
+</a-scene></body></html>`;
+
+$("frun").addEventListener("click", () => {
+  if (!fglbURL) return;
+  $("fpv").srcdoc = faceHTML(fglbURL, fplacement());
+  $("fpv").style.display = "block";
+  say("f3", "Allow the camera. The model attaches as soon as a face is found.");
+});
+$("fstop").addEventListener("click", () => {
+  $("fpv").srcdoc = ""; $("fpv").style.display = "none"; say("f3", "");
+});
+$("fgen").addEventListener("click", () => {
+  $("fout").textContent = faceHTML("./model.glb", fplacement())
+    + "\n\n<!-- Save as index.html next to " + (fglbName || "model.glb")
+    + " (renamed model.glb). No .mind file: face tracking compiles nothing. -->";
+  $("fout").style.display = "block";
+  say("f3", "Generated below. Only two files needed — this page and the model.", "ok");
+});
+
 </script>
 </body>
 </html>

@@ -11,9 +11,14 @@ This repo currently holds the **determinism harness** — the measurement the wh
 — compile an image target and preview a model, entirely in the browser. Nothing is uploaded: the
 image, the compiled `.mind` and the `.glb` never leave the tab.
 
-- pick an image → compile → download `target.mind`
-- pick a `.glb` → set scale, position and rotation → preview with the real tracker
-- generate a ready-to-use `index.html` with those settings baked in
+**Image tracking** — pick an image → compile → download `target.mind`; pick a `.glb`, set scale,
+position and rotation, preview with the real tracker, and generate a ready-to-use `index.html`.
+
+**Face tracking** — no compile step at all. A pretrained face mesh runs at capture time, so there
+is no target: pick a `.glb`, choose the **anchor index** (MediaPipe FaceMesh landmark, `0–467`;
+presets for 168 between-eyes, 10 forehead, 1 nose tip, 152 chin), set placement, and preview on
+your own camera. The **face occluder** is on by default — it is a head-shaped mask that hides
+geometry behind the face, without which glasses arms and hats render straight through the head.
 
 Versions are pinned deliberately: **compiler `mind-ar@1.1.5`** (the build upstream's own tool uses,
 so targets behave identically) and **runtime `mind-ar@1.2.1` + A-Frame 1.4.1** (what our working
