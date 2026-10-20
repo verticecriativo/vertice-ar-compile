@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20v";
+const BUILD = "2026-10-20w";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -92,6 +92,55 @@ function contentState(prefix) {
   };
 }
 window.__assets = {};
+
+// mind-ar's built-in scanning UI is a bracket frame and a moving line — it never shows WHAT to
+// point the camera at, which is the one thing you need while checking a compile. Hand it our own
+// element instead (uiScanning takes a selector) with the target thumbnails baked in as data URIs,
+// so the overlay is self-contained in the exported page and needs no extra files.
+function targetThumb(t, max) {
+  const cv = document.createElement("canvas");
+  const k = Math.min(1, max / Math.max(t.img.width, t.img.height));
+  cv.width = Math.max(1, Math.round(t.img.width * k));
+  cv.height = Math.max(1, Math.round(t.img.height * k));
+  cv.getContext("2d").drawImage(t.img, 0, 0, cv.width, cv.height);
+  return cv.toDataURL("image/jpeg", 0.72);
+}
+
+function scanOverlay() {
+  if (!targets.length) return "";
+  const shown = targets.slice(0, 3);
+  const thumbs = shown.map((t, i) =>
+    `<figure><img src="${targetThumb(t, 300)}" alt=""><figcaption>#${i}</figcaption></figure>`).join("");
+  const more = targets.length > shown.length
+    ? `<p class="vs-more">+${targets.length - shown.length} more target(s)</p>` : "";
+  return `<style>
+#vertice-scan { position:fixed; inset:0; z-index:5; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:18px; padding:24px; pointer-events:none;
+  background:radial-gradient(ellipse at center, rgba(0,0,0,.12) 0%, rgba(0,0,0,.62) 100%);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
+#vertice-scan.hidden { display:none; }
+#vertice-scan .vs-frame { position:relative; display:flex; gap:14px; align-items:center;
+  padding:18px 22px 28px; border-radius:10px; }
+#vertice-scan .vs-frame::before, #vertice-scan .vs-frame::after { content:""; position:absolute;
+  width:34px; height:34px; border:3px solid #fff; }
+#vertice-scan .vs-frame::before { top:0; left:0; border-right:0; border-bottom:0; }
+#vertice-scan .vs-frame::after { bottom:0; right:0; border-left:0; border-top:0; }
+#vertice-scan figure { margin:0; text-align:center; }
+#vertice-scan img { display:block; max-width:44vw; max-height:34vh; border-radius:4px;
+  box-shadow:0 2px 14px rgba(0,0,0,.5); }
+#vertice-scan figcaption { margin-top:5px; font-family:ui-monospace,monospace; font-size:11px;
+  color:#E0A24C; }
+#vertice-scan .vs-label { margin:0; color:#fff; font-size:14px; letter-spacing:.3px;
+  text-shadow:0 1px 6px rgba(0,0,0,.8); }
+#vertice-scan .vs-more { margin:0; color:#cfd3da; font-size:12px; }
+</style>
+<div id="vertice-scan" class="hidden">
+  <p class="vs-label">Point the camera at this</p>
+  <div class="vs-frame">${thumbs}</div>
+  ${more}
+</div>
+`;
+}
 
 function assetTag(c, id) {
   // response-type is NOT optional here. A-Frame infers it from the FILE EXTENSION:
@@ -229,14 +278,21 @@ window.addEventListener("message", async (ev) => {
   } catch (e) { reply({ error: String((e && e.message) || e) }); }
 });
 
-function openPreview(mode, doc) {
+function openPreview(mode, doc, overlay) {
   const m = doc.match(/<a-scene[\s\S]*<\/a-scene>/);
   if (!m) return false;
-  try { sessionStorage.setItem("vertice_ar_preview", JSON.stringify({ mode, scene: m[0], libs: libsFor(mode), build: BUILD })); }
+  try { sessionStorage.setItem("vertice_ar_preview", JSON.stringify({
+    mode, scene: m[0], libs: libsFor(mode), build: BUILD, overlay: overlay || "" })); }
   catch (e) { return false; }
   // Pages serves preview.html with max-age=600, and a stale preview is indistinguishable from
   // a broken one. The query string guarantees the tab fetches the current build.
   return !!window.open("preview.html?v=" + Date.now(), "_blank");
+}
+
+// uiScanning accepts a selector, so swap "yes" for our overlay when there is one to show.
+function imageTrackOpts() {
+  const o = trackOpts("i", false);
+  return scanOverlay() ? o.replace("uiScanning: yes", "uiScanning: #vertice-scan") : o;
 }
 
 function imageHTML(mindSrc, assetSrcMode) {
@@ -254,7 +310,7 @@ function imageHTML(mindSrc, assetSrcMode) {
 <script src="${LIB.extras}">${CLOSE}
 <script src="${LIB.image}">${CLOSE}
 <style>body{margin:0;overflow:hidden}</style></head><body>
-<a-scene mindar-image="imageTargetSrc: ${mindSrc}; ${trackOpts("i", false)}"
+${$("iuiscan").checked ? scanOverlay() : ""}<a-scene mindar-image="imageTargetSrc: ${mindSrc}; ${imageTrackOpts()}"
   embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
   ${DECODERS}
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
@@ -265,7 +321,8 @@ ${perTarget}
 
 $("run").addEventListener("click", () => {
   if (!mindURL) return;
-  const ok = openPreview("image", imageHTML(mindURL));
+  const ok = openPreview("image", imageHTML(mindURL),
+    $("iuiscan").checked ? scanOverlay() : "");
   say("s4", ok ? "Opened in a new tab — allow the camera there, then point it at a target."
                : "The browser blocked the new tab. Allow pop-ups for this site, then try again.",
       ok ? "ok" : "err");

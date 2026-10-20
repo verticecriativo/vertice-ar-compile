@@ -36,7 +36,7 @@
 <div id="build"></div>
 <div id="msg"><div><h1 id="t">Starting…</h1><p id="p">Asking for the camera.</p></div></div>
 <script>
-const BUILD = "2026-10-20t";
+const BUILD = "2026-10-20w";
 const t = document.getElementById("t"), p = document.getElementById("p"), msg = document.getElementById("msg");
 const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; };
 
@@ -137,6 +137,9 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
   document.getElementById("build").textContent =
     cfg.mode + " · mind-ar " + mv.split("/")[0] + " · studio " + (cfg.build || "?") + " · pv " + BUILD;
 
+  // The scanning overlay lives outside <a-scene>, so it travels separately. It must be in the DOM
+  // before the scene, because mind-ar resolves the uiScanning selector while starting up.
+  if (cfg.overlay) document.body.insertAdjacentHTML("beforeend", cfg.overlay);
   document.body.insertAdjacentHTML("beforeend", cfg.scene);
   const sc = document.querySelector("a-scene");
   if (!sc) return fail("Scene did not build", "The generated markup produced no &lt;a-scene&gt;.");
