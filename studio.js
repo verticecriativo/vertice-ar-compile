@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20n";
+const BUILD = "2026-10-20p";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -676,4 +676,8 @@ $("qpng").addEventListener("click", () => {
 
 PANELS.qr = ["nav-qr", "panel-qr"];
 $("nav-qr").addEventListener("click", () => show("qr"));
+PANELS.rig = ["nav-rig", "panel-rig"];
+// The WebGL viewport must be created while the panel is visible, or it measures zero and the
+// canvas comes up blank — the same class of bug as the preview's collapsed container.
+$("nav-rig").addEventListener("click", () => { show("rig"); if (window.__rigInit) window.__rigInit(); });
 renderQR();

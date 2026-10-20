@@ -14,6 +14,13 @@
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<!-- The rig tab runs its own three.js: it needs GLTFExporter, which A-Frame does not ship, and
+     keeping it separate means the viewer cannot perturb the AR runtime. The addons import a bare
+     "three" specifier, hence the import map. -->
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
 <style>
   *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
   :root { color-scheme:dark; }
@@ -71,6 +78,10 @@
   #qprev svg { width:100%; height:auto; display:block; }
   footer { margin-top:28px; font-size:.75rem; color:#5C616D; line-height:1.7; }
   a { color:#E0A24C; text-decoration:none; } a:hover { text-decoration:underline; }
+  #rigview { width:100%; height:420px; margin-top:14px; border:1px solid #2E323D; border-radius:10px;
+    overflow:hidden; background:#13161C; }
+  #rigview canvas { display:block; width:100%; height:100%; }
+  input[type=range] { width:100%; accent-color:#E0A24C; }
   details.help { margin-top:10px; border-top:1px solid #2E323D; padding-top:12px; }
   details.help > summary { color:#F6F6F8; font-weight:500; }
   details.help[open] > summary { color:#E0A24C; margin-bottom:8px; }
@@ -117,6 +128,7 @@
        itself a large part of why the form felt cramped. */
     .fld input, .fld select { font-size:16px; padding:9px 10px; }
     .titem { font-size:.78rem; gap:10px; }
+    #rigview { height:300px; }
     /* Nothing may establish a min-content width wider than the screen: in a column flex layout that
        widens the whole panel and gives the document a horizontal scroll. The snippets wrap instead
        of scrolling sideways, which reads better on a phone regardless. */
@@ -154,6 +166,7 @@
 <nav>
   <button id="nav-image" aria-current="true">Image tracking</button>
   <button id="nav-face">Face tracking</button>
+  <button id="nav-rig">Face rig</button>
   <button id="nav-qr">QR code</button>
   <div class="navnote">Settings persist in this browser. Files do not — re-pick them after a reload.</div>
 </nav>
@@ -447,6 +460,72 @@ mouthStretchRight  mouthShrugUpper  mouthRollLower</pre>
   </details>
 </section>
 </div>
+<div class="panel" id="panel-rig" hidden>
+<section>
+  <div class="step">Step 1</div>
+  <h2>Load a head</h2>
+  <p class="hint">Takes any <span class="mono">.glb</span> and gives it ARKit morph targets, so a
+  model that cannot talk can. Everything happens in this tab — the model is never uploaded.</p>
+  <div class="row">
+    <label class="filebtn">Choose .glb<input type="file" id="rigfileinput" accept=".glb,model/gltf-binary"></label>
+    <button class="ghost sm" id="rigtesthead">Use test head</button>
+  </div>
+  <div class="status" id="rig1"></div>
+</section>
+
+<section>
+  <div class="step">Step 2</div>
+  <h2>Paint the jaw</h2>
+  <p class="hint">Paint everything that should swing with the jaw — the chin and the <b>lower</b>
+  lip — fading to nothing at the jawline and the mouth corners. Leave the upper lip unpainted:
+  that separation is the entire reason this cannot be done automatically. If both lips move
+  together the mouth never opens.</p>
+  <div id="rigview"></div>
+  <div class="row">
+    <label class="chk"><input type="checkbox" id="rigpaint" disabled> Paint <span class="dim">(off = orbit)</span></label>
+    <label class="chk"><input type="checkbox" id="rigshow" checked> Show weights</label>
+    <button class="ghost sm" id="rigseed" disabled>Seed from bounds</button>
+    <button class="ghost sm" id="rigclear" disabled>Clear</button>
+  </div>
+  <div class="grid">
+    <div class="fld"><label>Brush size %</label><input id="rigbrush" value="8" data-persist></div>
+    <div class="fld"><label>Strength %</label><input id="rigstrength" value="60" data-persist></div>
+  </div>
+  <p class="hint">Drag to paint, shift-drag to erase. Untick <b>Paint</b> to rotate the model.</p>
+  <div class="status" id="rig2"></div>
+</section>
+
+<section>
+  <div class="step">Step 3</div>
+  <h2>Generate and export</h2>
+  <p class="hint">The shape is a rigid rotation of the painted region about a hinge — measured at
+  <b>97.5%</b> of an authored <span class="mono">jawOpen</span> on a real ARKit head. The hinge is
+  derived from the painted region; override it if the jaw swings from the wrong place.</p>
+  <div class="grid">
+    <div class="fld"><label>Shape name</label><input id="rigname" value="jawOpen" data-persist></div>
+    <div class="fld"><label>Angle °</label><input id="rigangle" value="37.5" data-persist></div>
+    <div class="fld"><label>Hinge Y</label><input id="righy" placeholder="auto"></div>
+    <div class="fld"><label>Hinge Z</label><input id="righz" placeholder="auto"></div>
+  </div>
+  <div class="grid">
+    <div class="fld" style="grid-column:1/-1"><label>Export filename</label><input id="rigfile" value="rigged.glb"></div>
+  </div>
+  <div class="row">
+    <button id="riggen" disabled>Generate shape</button>
+    <button class="ghost" id="rigdl" disabled>Download .glb</button>
+  </div>
+  <div class="status" id="rig3"></div>
+  <div class="grid">
+    <div class="fld" style="grid-column:1/-1"><label>Test the shape — drag to open the jaw</label>
+      <input id="rigtest" type="range" min="0" max="100" value="0" disabled></div>
+  </div>
+  <div class="status" id="rig4"></div>
+  <p class="hint">Then load the exported file in <b>Face tracking</b>: the checker will report the
+  morph target, and <b>Talk with the face</b> will drive it. Ten mouth shapes is enough to talk, and
+  the component drives whatever subset exists — so this is worth repeating for
+  <span class="mono">mouthPucker</span> and the rest.</p>
+</section>
+</div>
 <div class="panel" id="panel-qr" hidden>
 <section>
   <div class="step">Step 1</div>
@@ -543,6 +622,7 @@ mouthStretchRight  mouthShrugUpper  mouthRollLower</pre>
 <!-- Shared with the generated pages: the ARKit name table, the dialect matcher and a
      dependency-free .glb inspector. Loaded before studio.js, which uses the inspector. -->
 <script src="face-morphs.js"></script>
+<script type="module" src="rig.js"></script>
 <script src="studio.js"></script>
 </body>
 </html>
