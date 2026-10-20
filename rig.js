@@ -89,6 +89,19 @@ async function loadFromFile(file) {
     mesh = meshes.reduce((a, b) =>
       b.geometry.attributes.position.count > a.geometry.attributes.position.count ? b : a);
 
+    // A model can arrive with non-zero default weights baked in — glTF stores them per mesh/node,
+    // and anything exported mid-expression carries them. Start every load neutral so the viewport
+    // shows the actual rest pose.
+    let baked = 0;
+    gltf.scene.traverse((o) => {
+      if (o.isMesh && o.morphTargetInfluences) {
+        for (let i = 0; i < o.morphTargetInfluences.length; i++) {
+          if (o.morphTargetInfluences[i] > 0.001) baked++;
+          o.morphTargetInfluences[i] = 0;
+        }
+      }
+    });
+
     const pos = mesh.geometry.attributes.position;
     base = new Float32Array(pos.array);
     W = { jaw: new Float32Array(pos.count), lips: new Float32Array(pos.count) };
@@ -115,7 +128,8 @@ async function loadFromFile(file) {
 
     const existing = mesh.morphTargetDictionary ? Object.keys(mesh.morphTargetDictionary).length : 0;
     say("rig1", `${file.name} — ${(file.size / 1048576).toFixed(2)} MB · mesh "${mesh.name || "?"}" · `
-      + `${pos.count.toLocaleString()} vertices` + (existing ? ` · ${existing} existing morph targets` : ""), "ok");
+      + `${pos.count.toLocaleString()} vertices` + (existing ? ` · ${existing} existing morph targets` : "")
+      + (baked ? `  ⚠ it had ${baked} non-zero default weight(s) baked in — reset to neutral here` : ""), "ok");
     $("rigclear").disabled = false; $("rigseed").disabled = false;
     $("riggen").disabled = false; $("rigpaint").disabled = false;
     $("rigall").disabled = false;
@@ -413,6 +427,16 @@ function applyTest() {
 
 async function download() {
   say("rig4", "Exporting…");
+  // The exporter writes whatever the influences currently are as the model's DEFAULT weights, so
+  // exporting with the test slider up ships a model that is permanently mid-expression — it loads
+  // with its jaw already open. Zero every mesh for the duration of the export, then put it back.
+  const saved = [];
+  root.traverse((o) => {
+    if (o.isMesh && o.morphTargetInfluences) {
+      saved.push([o, [...o.morphTargetInfluences]]);
+      o.morphTargetInfluences.fill(0);
+    }
+  });
   try {
     const glb = await new Promise((res, rej) =>
       new GLTFExporter().parse(root, res, rej, { binary: true, onlyVisible: false }));
@@ -425,6 +449,11 @@ async function download() {
     say("rig4", `Exported ${(blob.size / 1048576).toFixed(2)} MB. Load it in Face tracking and the `
       + `checker will confirm the morph target.`, "ok");
   } catch (e) { say("rig4", "Export failed — " + e.message, "err"); }
+  // morphTargetInfluences is a plain Array, not a typed array — it has no .set().
+  finally {
+    for (const [o, v] of saved)
+      for (let k = 0; k < v.length; k++) o.morphTargetInfluences[k] = v[k];
+  }
 }
 
 // ---------- wiring ----------
