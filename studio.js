@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20w";
+const BUILD = "2026-10-20x";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -189,6 +189,10 @@ function trackOpts(prefix, isFace) {
 
 // ---------- IMAGE MODE ----------
 let targets = [];            // [{file, img, url, name}]
+// The placement viewport is a separate ES module, so it needs a way in. targets is only ever
+// mutated in place (push/splice), never reassigned, so one reference stays valid.
+window.__targets = targets;
+const notifyPlacement = () => document.dispatchEvent(new CustomEvent("vertice:placement"));
 let mindBuffer = null, mindURL = null;
 
 function renderTargets() {
@@ -206,6 +210,7 @@ function renderTargets() {
     box.appendChild(row);
   });
   $("compile").disabled = targets.length === 0;
+  notifyPlacement();
   $("imaxtrack").max = Math.max(1, targets.length);
   say("s1", targets.length ? `${targets.length} target${targets.length > 1 ? "s" : ""} ready to compile.` : "");
 }
@@ -511,7 +516,7 @@ function refreshImageButtons() {
     }
     if (pfx === "f") $("frun").disabled = needsFile(k) && !window.__assets.f;
     if (pfx === "f") $("fgen").disabled = needsFile(k) && !window.__assets.f;
-    if (pfx === "i") refreshImageButtons();
+    if (pfx === "i") { refreshImageButtons(); notifyPlacement(); }
   };
   kind.addEventListener("change", () => { sync(); saveSettings(); });
   file.addEventListener("change", (e) => {
@@ -523,7 +528,7 @@ function refreshImageButtons() {
       `${f.name} — ${(f.size / 1024 / 1024).toFixed(2)} MB` + (big ? "  ⚠ over 3 MB is slow on venue Wi-Fi" : ""),
       big ? "err" : "ok");
     sync();
-    if (pfx === "i") refreshImageButtons();
+    if (pfx === "i") { refreshImageButtons(); notifyPlacement(); }
     if (pfx === "f" && kind.value === "glb") inspectModel(f);
   });
   sync();
@@ -537,10 +542,14 @@ function show(which) {
     $(pan).hidden = (k !== which);
   }
 }
-$("nav-image").addEventListener("click", () => show("image"));
+// WebGL must be created while the panel is visible, or it measures zero and comes up blank.
+$("nav-image").addEventListener("click", () => { show("image");
+  if (window.__placeStart) window.__placeStart(); });
 $("nav-face").addEventListener("click", () => show("face"));
 
 loadSettings();
+// Image tracking is the panel shown on load, so bring its viewport up straight away.
+if (window.__placeStart) window.__placeStart();
 renderTargets();
 ["i", "f"].forEach((p) => $(p + "kind").dispatchEvent(new Event("change")));
 

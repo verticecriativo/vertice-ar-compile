@@ -78,9 +78,10 @@
   #qprev svg { width:100%; height:auto; display:block; }
   footer { margin-top:28px; font-size:.75rem; color:#5C616D; line-height:1.7; }
   a { color:#E0A24C; text-decoration:none; } a:hover { text-decoration:underline; }
-  #rigview { width:100%; height:420px; margin-top:14px; border:1px solid #2E323D; border-radius:10px;
+  #rigview, #iview { width:100%; margin-top:14px; border:1px solid #2E323D; border-radius:10px;
     overflow:hidden; background:#13161C; }
-  #rigview canvas { display:block; width:100%; height:100%; }
+  #rigview { height:420px; } #iview { height:340px; }
+  #rigview canvas, #iview canvas { display:block; width:100%; height:100%; }
   input[type=range] { width:100%; accent-color:#E0A24C; }
   details.help { margin-top:10px; border-top:1px solid #2E323D; padding-top:12px; }
   details.help > summary { color:#F6F6F8; font-weight:500; }
@@ -128,7 +129,7 @@
        itself a large part of why the form felt cramped. */
     .fld input, .fld select { font-size:16px; padding:9px 10px; }
     .titem { font-size:.78rem; gap:10px; }
-    #rigview { height:300px; }
+    #rigview { height:300px; } #iview { height:250px; }
     /* Nothing may establish a min-content width wider than the screen: in a column flex layout that
        widens the whole panel and gives the document a horizontal scroll. The snippets wrap instead
        of scrolling sideways, which reads better on a phone regardless. */
@@ -223,13 +224,23 @@
     <div class="fld"><label>Rot Y</label><input id="iry" value="0" data-persist></div>
     <div class="fld"><label>Rot Z</label><input id="irz" value="0" data-persist></div>
   </div>
+  <div id="iview"></div>
+  <div class="row">
+    <button class="ghost sm" id="ifront">Front view</button>
+    <label class="chk"><input type="checkbox" id="igridtoggle" checked> Grid</label>
+  </div>
+  <p class="hint">The plane is your target at the scale the tracker uses: <b>one unit wide</b>, with
+  its height from the image aspect. <span class="mono">0 0 0</span> is the target's centre and
+  <b>+Z</b> comes towards the viewer, so these are the same numbers the preview and the bundle use —
+  place it here and it lands there. Drag to orbit.</p>
+  <div class="status" id="i5"></div>
   <div class="status" id="s2"></div>
   <details>
     <summary>Tracking options</summary>
     <div class="grid">
     <div class="fld"><label>maxTrack</label><input id="imaxtrack" value="1" data-persist></div>
     <div class="fld"><label>filterMinCF</label><input id="imincf" value="0.001" data-persist></div>
-    <div class="fld"><label>filterBeta</label><input id="ibeta" value="1000" data-persist></div>
+    <div class="fld"><label>filterBeta</label><input id="ibeta" value="60" data-persist></div>
     <div class="fld"><label>warmupTolerance</label><input id="iwarmup" value="5" data-persist></div>
     <div class="fld"><label>missTolerance</label><input id="imiss" value="5" data-persist></div>
     </div>
@@ -649,6 +660,7 @@ mouthStretchRight  mouthShrugUpper  mouthRollLower</pre>
      dependency-free .glb inspector. Loaded before studio.js, which uses the inspector. -->
 <script src="face-morphs.js"></script>
 <script type="module" src="rig.js"></script>
+<script type="module" src="place.js"></script>
 <script src="studio.js"></script>
 </body>
 </html>

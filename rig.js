@@ -15,6 +15,25 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+
+// A bare GLTFLoader decodes none of the compressed containers, which is how a perfectly good
+// Draco model fails here with "No DRACOLoader instance provided" — the same gap A-Frame leaves for
+// KTX2 and meshopt. Wire all three up once, against the renderer, so any real model opens.
+function fitDecoders(loader, renderer) {
+  const draco = new DRACOLoader();
+  draco.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.5/");
+  loader.setDRACOLoader(draco);
+  loader.setMeshoptDecoder(MeshoptDecoder);
+  if (renderer) {
+    const ktx2 = new KTX2Loader()
+      .setTranscoderPath("https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/basis/")
+      .detectSupport(renderer);
+    loader.setKTX2Loader(ktx2);
+  }
+}
 
 const $ = (id) => document.getElementById(id);
 const say = (el, msg, cls) => { const n = $(el); if (!n) return; n.textContent = msg; n.className = "status " + (cls || ""); };
@@ -79,7 +98,9 @@ async function loadFromFile(file) {
   init();
   const url = URL.createObjectURL(file);
   try {
-    const gltf = await new GLTFLoader().loadAsync(url);
+    const gl = new GLTFLoader();
+    fitDecoders(gl, renderer);
+    const gltf = await gl.loadAsync(url);
     root.clear(); root.add(gltf.scene);
 
     // The head is the densest mesh. Everything else (ears, hair) stays visible but unpainted.
