@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vértice — AR preview</title>
+<meta name="robots" content="noindex">
+<style>
+  html,body { margin:0; height:100%; background:#0C0D11; color:#F6F6F8;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; overflow:hidden; }
+  #msg { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    padding:28px; text-align:center; z-index:9999; background:#0C0D11; }
+  #msg div { max-width:30rem; }
+  h1 { font-size:1.05rem; font-weight:600; margin-bottom:10px; }
+  p { font-size:.9rem; line-height:1.65; color:#AEB4BF; }
+  code { color:#E0A24C; font-family:ui-monospace,monospace; font-size:.85em; }
+  .hide { display:none !important; }
+  /* The generated scene carries `embedded`, so A-Frame sizes the canvas to its PARENT.
+     Without an explicit box here the canvas collapses to zero height — a white screen again. */
+  #scene { position:fixed; inset:0; }
+  #scene a-scene, #scene canvas, #scene video { width:100% !important; height:100% !important; }
+</style>
+</head>
+<body>
+<div id="msg"><div><h1 id="t">Starting…</h1><p id="p">Asking for the camera.</p></div></div>
+<div id="scene"></div>
+<script>
+const t = document.getElementById("t"), p = document.getElementById("p"), msg = document.getElementById("msg");
+const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; };
+
+// A white or black screen with no explanation is useless, so every failure mode says what happened.
+(async function () {
+  let cfg;
+  try { cfg = JSON.parse(sessionStorage.getItem("vertice_ar_preview") || "null"); } catch (e) {}
+  if (!cfg) return fail("Nothing to preview",
+    "Open this from the studio — it reads the model and target from the tab that launched it.");
+
+  if (!window.isSecureContext) return fail("Not a secure context",
+    "Cameras need HTTPS. Open this over <code>https://</code>.");
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+    return fail("No camera API", "This browser does not expose <code>getUserMedia</code>.");
+
+  // Ask explicitly first: this surfaces the real reason rather than letting the AR library fail mute.
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: cfg.mode === "face" ? "user" : "environment" } });
+    s.getTracks().forEach((x) => x.stop());          // release it; the library opens its own
+  } catch (err) {
+    const n = err && err.name;
+    if (n === "NotAllowedError") return fail("Camera permission denied",
+      "Allow camera access for this site, then reload. On iOS: Settings › Safari › Camera, or the ‘aA’ menu › Website Settings.");
+    if (n === "NotFoundError" || n === "OverconstrainedError") return fail("No usable camera",
+      "No camera matched the request. On a laptop the face mode wants the front camera.");
+    if (n === "NotReadableError") return fail("Camera already in use",
+      "Another tab or app holds the camera. Close it and reload.");
+    return fail("Camera failed", "<code>" + (n || "unknown") + "</code> — " + ((err && err.message) || ""));
+  }
+
+  // Load A-Frame, then the matching MindAR runtime, in order.
+  const load = (src) => new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res; s.onerror = () => rej(new Error(src));
+    document.head.appendChild(s);
+  });
+  try {
+    await load("https://aframe.io/releases/1.4.1/aframe.min.js");
+    await load("https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js");
+    await load(cfg.mode === "face"
+      ? "https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-face-aframe.prod.js"
+      : "https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js");
+  } catch (err) {
+    return fail("A library did not load", "Blocked or offline: <code>" + err.message + "</code>");
+  }
+
+  document.getElementById("scene").innerHTML = cfg.scene;
+  const sc = document.querySelector("a-scene");
+  if (!sc) return fail("Scene did not build", "The generated markup produced no &lt;a-scene&gt;.");
+
+  let done = false;
+  const clear = () => { if (!done) { done = true; msg.classList.add("hide"); } };
+  sc.addEventListener("arReady", clear);
+  sc.addEventListener("renderstart", clear);
+  setTimeout(() => {
+    if (!done) fail("Still starting",
+      "The tracker has not reported ready. The face model is about 2 MB — on slow connections give it a moment, then reload.");
+  }, 12000);
+  setTimeout(clear, 20000);                         // never leave the overlay stuck over a working scene
+})();
+</script>
+</body>
+</html>

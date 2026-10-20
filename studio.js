@@ -155,6 +155,19 @@ $("compile").addEventListener("click", async () => {
 const dlBlob = (url, name) => { const a = document.createElement("a"); a.href = url; a.download = name; a.click(); };
 $("dl").addEventListener("click", () => mindURL && dlBlob(mindURL, "targets.mind"));
 
+// A new same-origin TAB, not an iframe. iOS Safari restricts getUserMedia inside srcdoc iframes,
+// which is why the face preview came up white with no camera at all. A real top-level document
+// gets normal camera permission, and preview.html reports why it failed instead of going blank.
+// Only the <a-scene> fragment is passed: preview.html loads the runtime itself, while the export
+// builders keep producing complete documents.
+function openPreview(mode, doc) {
+  const m = doc.match(/<a-scene[\s\S]*<\/a-scene>/);
+  if (!m) return false;
+  try { sessionStorage.setItem("vertice_ar_preview", JSON.stringify({ mode, scene: m[0] })); }
+  catch (e) { return false; }
+  return !!window.open("preview.html", "_blank");
+}
+
 function imageHTML(mindSrc, assetSrcMode) {
   const c = contentState("i");
   const id = "c0";
@@ -180,11 +193,12 @@ ${perTarget}
 
 $("run").addEventListener("click", () => {
   if (!mindURL) return;
-  $("pv").srcdoc = imageHTML(mindURL);
-  $("pv").style.display = "block";
-  say("s4", "Allow the camera, then point it at a target. Nothing shows until it locks on.");
+  const ok = openPreview("image", imageHTML(mindURL));
+  say("s4", ok ? "Opened in a new tab — allow the camera there, then point it at a target."
+               : "The browser blocked the new tab. Allow pop-ups for this site, then try again.",
+      ok ? "ok" : "err");
 });
-$("stop").addEventListener("click", () => { $("pv").srcdoc = ""; $("pv").style.display = "none"; say("s4", ""); });
+$("stop").addEventListener("click", () => { say("s4", "Close the preview tab to release the camera."); });
 $("gen").addEventListener("click", () => {
   const c = contentState("i");
   const assetName = c.kind === "glb" ? "model.glb" : c.kind === "video" ? "video.mp4" : "image.jpg";
@@ -235,10 +249,12 @@ ${asset ? `  <a-assets>\n    ${asset}\n  </a-assets>\n` : ""}  <a-camera active=
 </a-scene></body></html>`;
 }
 $("frun").addEventListener("click", () => {
-  $("fpv").srcdoc = faceHTML(); $("fpv").style.display = "block";
-  say("f3", "Allow the camera. It attaches as soon as a face is found.");
+  const ok = openPreview("face", faceHTML());
+  say("f3", ok ? "Opened in a new tab — allow the camera there. It attaches as soon as it finds a face."
+               : "The browser blocked the new tab. Allow pop-ups for this site, then try again.",
+      ok ? "ok" : "err");
 });
-$("fstop").addEventListener("click", () => { $("fpv").srcdoc = ""; $("fpv").style.display = "none"; say("f3", ""); });
+$("fstop").addEventListener("click", () => { say("f3", "Close the preview tab to release the camera."); });
 $("fgen").addEventListener("click", () => {
   const c = contentState("f");
   const assetName = c.kind === "glb" ? "model.glb" : c.kind === "video" ? "video.mp4" : "image.jpg";
@@ -283,8 +299,6 @@ function show(which) {
     $(nav).setAttribute("aria-current", String(k === which));
     $(pan).hidden = (k !== which);
   }
-  $("pv").srcdoc = ""; $("pv").style.display = "none";
-  $("fpv").srcdoc = ""; $("fpv").style.display = "none";
 }
 $("nav-image").addEventListener("click", () => show("image"));
 $("nav-face").addEventListener("click", () => show("face"));
