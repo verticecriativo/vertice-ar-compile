@@ -305,12 +305,20 @@ const MARK_POLYS = [
   ["#e0a24c", "0.22,0 48.5,48.1 48.2,48.42 0.13,0.17"],
 ];
 
+// A rounded finder keeps the 1:1:3:1:1 ratio a reader measures along its scan lines, which is why
+// it works in practice — but it is a deviation, so the UI says to test the real output.
+function finderSVG(x, y, dark, light, r) {
+  const rr = (X, Y, W, H, R, f) =>
+    `<rect x="${X}" y="${Y}" width="${W}" height="${H}" rx="${R}" ry="${R}" fill="${f}"/>`;
+  return rr(x, y, 7, 7, r, dark) + rr(x + 1, y + 1, 5, 5, r * 0.7, light) + rr(x + 2, y + 2, 3, 3, r * 0.45, dark);
+}
+
 function buildQR() {
   const url = $("qurl").value.trim();
   if (!url) { say("q1", "Enter a URL.", "err"); return null; }
-  const withMark = $("qmark").checked;
-  const ec = withMark ? "H" : $("qec").value;        // a centre mark needs the 30% recovery level
-  if (withMark && $("qec").value !== "H") $("qec").value = "H";
+  const centre = $("qmark").checked || !!window.__centreImg;
+  const ec = centre ? "H" : $("qec").value;          // any centre art needs the 30% recovery level
+  if (centre && $("qec").value !== "H") $("qec").value = "H";
 
   let qr;
   try {
@@ -325,13 +333,32 @@ function buildQR() {
   const dark = $("qdark").value.trim() || "#17191F";
   const light = $("qlight").value.trim() || "#F6F6F8";
 
+  const rounded = $("qfinder").value === "rounded";
+  // the three finders occupy 7x7 at the corners; when styling them, their modules are skipped and
+  // the shapes drawn instead
+  const inFinder = (r, c) =>
+    (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
+
   let body = `<rect width="${total}" height="${total}" fill="${light}"/>`;
   for (let r = 0; r < n; r++) {
     for (let c = 0; c < n; c++) {
+      if (rounded && inFinder(r, c)) continue;
       if (qr.isDark(r, c)) body += `<rect x="${c + quiet}" y="${r + quiet}" width="1" height="1" fill="${dark}"/>`;
     }
   }
-  if (withMark) {
+  if (rounded) {
+    const rad = 2;
+    body += finderSVG(quiet, quiet, dark, light, rad)
+          + finderSVG(quiet + n - 7, quiet, dark, light, rad)
+          + finderSVG(quiet, quiet + n - 7, dark, light, rad);
+  }
+  if (window.__centreImg) {
+    const side = Math.round(total * 0.22);
+    const off = (total - side) / 2;
+    const pad = Math.max(1, Math.round(side * 0.12));
+    body += `<rect x="${off - pad}" y="${off - pad}" width="${side + pad * 2}" height="${side + pad * 2}" fill="${light}" rx="${pad}"/>`;
+    body += `<image href="${window.__centreImg}" x="${off}" y="${off}" width="${side}" height="${side}" preserveAspectRatio="xMidYMid meet"/>`;
+  } else if ($("qmark").checked) {
     // knock a hole in the modules, then drop the mark in it. ~22% of the width keeps the payload
     // recoverable at level H.
     const side = Math.round(total * 0.22);
@@ -348,7 +375,8 @@ function buildQR() {
 
   const notes = [`${n}×${n} modules`, `level ${ec}`, `${url.length} chars`];
   if (n > 45) notes.push("dense — shorten the URL if it scans badly off a screen");
-  if (withMark) notes.push("centre mark covers ~22%, recoverable at H");
+  if (centre) notes.push("centre art covers ~22%, recoverable at H");
+  if (rounded) notes.push("rounded finders — test before relying on it");
   say("q1", notes.join(" · "), n > 57 ? "err" : "ok");
   return { svg, total, url };
 }
@@ -361,6 +389,23 @@ function renderQR() {
   window.__qr = r;
 }
 ["qurl", "qec", "qdark", "qlight"].forEach((id) => $(id).addEventListener("input", renderQR));
+$("qfinder").addEventListener("change", renderQR);
+
+// Custom centre art, for codes pointing at anything else we own. Embedded as a data URI so the
+// downloaded SVG is self-contained rather than referencing a file that will go missing.
+window.__centreImg = null;
+$("qimg").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (!f) { window.__centreImg = null; renderQR(); return; }
+  if (f.size > 400 * 1024) { say("q1", "Keep the centre image under 400 KB — it is embedded in the SVG.", "err"); return; }
+  const rd = new FileReader();
+  rd.onload = () => { window.__centreImg = rd.result; $("qmark").checked = false; renderQR(); };
+  rd.onerror = () => say("q1", "Could not read that image.", "err");
+  rd.readAsDataURL(f);
+});
+$("qimgclear").addEventListener("click", () => {
+  window.__centreImg = null; $("qimg").value = ""; renderQR();
+});
 $("qmark").addEventListener("change", renderQR);
 $("qgen").addEventListener("click", renderQR);
 

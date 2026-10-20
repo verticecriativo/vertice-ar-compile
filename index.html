@@ -280,14 +280,23 @@
     <div class="fld"><label>Dark</label><input id="qdark" value="#17191F" data-persist></div>
     <div class="fld"><label>Light</label><input id="qlight" value="#F6F6F8" data-persist></div>
     <div class="fld"><label>PNG size (px)</label><input id="qpx" value="1024" data-persist></div>
+    <div class="fld"><label>Finder style</label><select id="qfinder" data-persist>
+      <option value="square">Square</option>
+      <option value="rounded">Rounded</option>
+    </select></div>
   </div>
   <div class="row">
     <label class="chk"><input type="checkbox" id="qmark" data-persist> Vértice mark in the centre</label>
+    <label class="filebtn">Upload centre image<input type="file" id="qimg" accept="image/*"></label>
+    <button id="qimgclear" class="ghost sm">Clear</button>
     <button id="qgen" class="ghost sm">Refresh</button>
   </div>
-  <p class="hint" style="margin-top:8px">The centre mark forces level&nbsp;H and covers about 22% of
-  the code — within what H can recover, but always test the printed or on-screen result before you
-  rely on it. Dark-on-light scans most reliably; inverting works on most readers, not all.</p>
+  <p class="hint" style="margin-top:8px">Upload any mark to make codes for the other things you own
+  — it is embedded in the SVG, so the file stays self-contained. Centre art forces level&nbsp;H and
+  covers about 22%, within what H recovers. <b>Rounded finders keep the 1:1:3:1:1 ratio a reader
+  measures, which is why they work in practice — but they are a deviation from the spec.</b> With
+  either, scan the real output at the real distance before you rely on it. Dark-on-light scans most
+  reliably; inverting works on most readers, not all.</p>
   <div class="status" id="q1"></div>
   <div id="qprev"></div>
   <div class="row">
