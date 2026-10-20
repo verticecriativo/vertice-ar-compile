@@ -65,6 +65,21 @@
         if (tn && tn.length > names.length) names = tn;
       });
     });
+    // "A-Frame can decode it" and "a phone can run it" are different questions. AI image-to-3D
+    // tools (Tripo, Meshy and friends) emit millions of triangles and 4k textures by default, which
+    // decodes perfectly and then exhausts a phone's memory. Report the weight too.
+    const acc = json.accessors || [], views = json.bufferViews || [];
+    let tris = 0;
+    (json.meshes || []).forEach((m) => (m.primitives || []).forEach((pr) => {
+      if (pr.indices !== undefined && acc[pr.indices]) tris += Math.floor(acc[pr.indices].count / 3);
+      else if (pr.attributes && pr.attributes.POSITION !== undefined && acc[pr.attributes.POSITION])
+        tris += Math.floor(acc[pr.attributes.POSITION].count / 3);
+    }));
+    let texBytes = 0;
+    (json.images || []).forEach((im) => {
+      if (im.bufferView !== undefined && views[im.bufferView]) texBytes += views[im.bufferView].byteLength;
+    });
+
     const have = new Set(names.map(canon));
     const matched = ARKIT.filter((n) => have.has(canon(n)));
     const mouth = ARKIT.filter((n) => /^(jaw|mouth)/.test(n));
@@ -72,6 +87,11 @@
       .filter((e, i, a) => BLOCKING[e] && a.indexOf(e) === i);
     return {
       meshes: (json.meshes || []).length,
+      triangles: tris,
+      textureBytes: texBytes,
+      animations: (json.animations || []).length,
+      skins: (json.skins || []).length,
+      generator: (json.asset || {}).generator || "",
       morphTargets: names.length,
       names: names,
       matched: matched.length,

@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20i";
+const BUILD = "2026-10-20j";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -337,6 +337,17 @@ document.querySelectorAll("button.anchor").forEach((b) =>
 // Vet a .glb the moment it is picked, from the file alone — no camera, no face, nothing uploaded.
 // "Where do I find a model with ARKit morph targets" is only answerable if you can tell, in one
 // step, whether a candidate actually has them and whether A-Frame can even decode it.
+// A model can decode fine and still be unusable on a phone. Image-to-3D tools routinely emit
+// millions of triangles and 4k textures, so say so rather than let it be discovered at the venue.
+const heavy = (r) => r.triangles > 300000 || r.textureBytes > 8 * 1024 * 1024;
+function weight(r) {
+  const tri = r.triangles >= 1e6 ? (r.triangles / 1e6).toFixed(1) + "M"
+            : r.triangles >= 1e3 ? Math.round(r.triangles / 1e3) + "k" : String(r.triangles);
+  let out = ` · ${tri} triangles · ${(r.textureBytes / 1048576).toFixed(1)} MB textures`;
+  if (heavy(r)) out += "  ⚠ far too heavy for a phone — decimate the mesh and shrink the textures";
+  return out;
+}
+
 function inspectModel(file) {
   const api = window.VerticeFaceMorphs;
   if (!api) return;
@@ -350,8 +361,8 @@ function inspectModel(file) {
         + r.blocking.join("; ") + ". Re-export as plain glTF/GLB.", "err");
     }
     if (!r.morphTargets) {
-      return say("fmorphcheck", "No morph targets in this model — nothing to drive. "
-        + "It will still track as a rigid object.", "err");
+      return say("fmorphcheck", "No morph targets — nothing to drive, so it cannot talk. "
+        + "It will still track as a rigid object." + weight(r), "err");
     }
     if (!r.matchedDrivable) {
       return say("fmorphcheck", r.morphTargets + " morph targets, but none match the ARKit names"
@@ -359,8 +370,8 @@ function inspectModel(file) {
     }
     say("fmorphcheck",
       `${r.morphTargets} morph targets · ${r.matchedDrivable}/51 ARKit matched · `
-      + `jaw+mouth ${r.mouthOk}/${r.mouthTotal} · ${r.dialect} naming`,
-      r.mouthOk >= 10 ? "ok" : "");
+      + `jaw+mouth ${r.mouthOk}/${r.mouthTotal} · ${r.dialect} naming` + weight(r),
+      r.mouthOk >= 10 && !heavy(r) ? "ok" : "");
   }).catch(() => {});
 }
 
