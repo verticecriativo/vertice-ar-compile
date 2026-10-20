@@ -36,7 +36,7 @@
 <div id="build"></div>
 <div id="msg"><div><h1 id="t">Starting…</h1><p id="p">Asking for the camera.</p></div></div>
 <script>
-const BUILD = "2026-10-20s";
+const BUILD = "2026-10-20t";
 const t = document.getElementById("t"), p = document.getElementById("p"), msg = document.getElementById("msg");
 const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; };
 
@@ -89,7 +89,12 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
   // Resolve every blob: URL before building the scene. Direct fetch first; if the browser
   // refuses a cross-tab blob (iOS does this), ask the studio tab for the bytes and re-mint
   // the URL locally. Either way we know the asset is reachable before A-Frame sees it.
-  const blobs = Array.from(new Set(cfg.scene.match(/blob:[^"'\s)]+/g) || []));
+  // ';' and ',' must be excluded. In face mode the asset sits in src="blob:…" and a quote ends it,
+  // but in IMAGE mode the .mind URL lives inside an A-Frame component attribute —
+  //   mindar-image="imageTargetSrc: blob:…; filterMinCF: 0.001"
+  // — where a semicolon ends it. Without excluding it the captured URL carries a trailing ';',
+  // which fetches nothing and which the studio then refuses to recognise as one of its own.
+  const blobs = Array.from(new Set(cfg.scene.match(/blob:[^"'\s;,)<>]+/g) || []));
   if (blobs.length) {
     t.textContent = "Loading the model…";
     p.textContent = blobs.length === 1 ? "Fetching 1 asset." : "Fetching " + blobs.length + " assets.";

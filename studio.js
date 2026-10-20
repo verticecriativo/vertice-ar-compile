@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20s";
+const BUILD = "2026-10-20t";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
