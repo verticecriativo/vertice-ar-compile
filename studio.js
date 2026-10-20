@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20m";
+const BUILD = "2026-10-20n";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -305,6 +305,10 @@ $("ftest").addEventListener("click", async () => {
     window.__assets.f = { url: URL.createObjectURL(file), name: file.name, file: file };
     $("fkind").value = "glb";
     $("fsc").value = "3";            // measured: ~60% of frame height on a face at arm's length
+    // Anchor 168 is BETWEEN THE EYES, so a head centred on it sits high and the real chin shows
+    // below the mask. Measured: -0.3 drops it ~37 px and closes the gap without oversizing.
+    $("fpy").value = "-0.3";
+    $("fpx").value = "0"; $("fpz").value = "0";
     $("fmorph").checked = true;
     $("fanchor").value = "168";
     $("fkind").dispatchEvent(new Event("change"));

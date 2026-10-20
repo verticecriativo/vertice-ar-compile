@@ -132,6 +132,16 @@ primitives (box, plane, text), not a head.
 
 Useful anchor indices: **168** between the eyes (best for a mask), **10** forehead, **1** nose tip.
 
+### Chin showing below the mask
+
+Anchor 168 is **between the eyes**, so a head centred on it rides high and the real jaw stays
+visible underneath. Nudge **Pos Y** negative — `-0.3` is usually enough, and is what the test-head
+button sets. Measured on the bundled head: `-0.3` drops the mask ~37 px and closes the gap, while
+the same coverage via **Scale** alone needs about `3.6` and looks oversized.
+
+Position is in anchor units and therefore sensitive: `-4` moves the mask roughly 480 px, straight
+off the bottom. Adjust in tenths.
+
 ---
 
 ## You do not need all 52
@@ -167,6 +177,7 @@ different voice (pitch shift or conversion), lip-syncing to speech the wearer is
 | Camera opens, everything black | Covered by a background. The container must have **no** background over the video, which mind-ar inserts at `z-index:-2`. |
 | Camera fills but content is displaced upward on a phone | `look-controls` left enabled on the camera. Device orientation then rotates it; the generated pages disable it. |
 | Scene empty, no error | A model A-Frame could not decode. The preview now reports `model-error` with the reason. |
+| Chin visible below the mask | Anchor 168 is between the eyes. Nudge **Pos Y** to `-0.3`. |
 | Tracks, but as a rigid lump | No morph targets, or none matched. Check the line under the file picker. |
 | Nothing at all on iOS | The preview must be a top-level tab — iOS Safari blocks `getUserMedia` inside `srcdoc` iframes. |
 
