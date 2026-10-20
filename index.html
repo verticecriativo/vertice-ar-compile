@@ -552,9 +552,12 @@ mouthStretchRight  mouthShrugUpper  mouthRollLower</pre>
       <input id="rigtest" type="range" min="0" max="100" value="0" disabled></div>
   </div>
   <div class="status" id="rig4"></div>
-  <p class="hint"><b>Lip movement %</b> scales the nine lip shapes together. A lip ring seeded from
-  the jaw is a thin, low-weight band, so the shapes come out subtle — painting the ring properly,
-  or raising this to 150–250, gives movement you can actually read on a face.</p>
+  <p class="hint"><b>Lip movement %</b> scales the nine lip shapes together. They are calibrated so
+  that, driven at the same time as an open jaw, they move the lip ring about <b>half</b> as far as
+  <span class="mono">jawOpen</span> does — measured, because at the original strength the jaw moved
+  the mouth five times more than the mouth shapes did and a purse or a smile was invisible
+  underneath it. Raise this if your character needs a broader mouth, lower it if expressions look
+  rubbery.</p>
   <p class="hint">The ten are <span class="mono">jawOpen mouthClose mouthFunnel mouthPucker
   mouthSmileLeft mouthSmileRight mouthStretchLeft mouthStretchRight mouthShrugUpper
   mouthRollLower</span> — enough to talk. Then load the exported file in <b>Face tracking</b>: the

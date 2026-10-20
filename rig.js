@@ -399,7 +399,15 @@ function generateAll() {
   const fwd = cz > midZ ? 1 : -1;                // the mouth is on the face, so this is "outwards"
   // Facing +Z with +Y up, the subject's left is +X (cross(up, forward)). Facing -Z it flips.
   const leftSign = fwd;
-  const amt = (parseFloat($("riglip").value) || 100) / 100;
+  // MEASURED, not guessed. Over the lip ring, with a realistic simultaneous blend, jawOpen pushed
+  // 0.534 units on average (5.9% of head height) while all nine lip shapes together pushed 0.103
+  // (1.1%) — a ratio of 0.19. The combined motion came out LOWER than jawOpen alone, i.e. the lip
+  // shapes were partly cancelling the jaw instead of reading on top of it. That is the "jaw always
+  // influences the mouth" complaint: the jaw was doing essentially all the work and the mouth could
+  // only open and close. This lifts the nine to roughly half the jaw's contribution, which is where
+  // a purse or a smile becomes legible against an open jaw.
+  const LIP_GAIN = 2.5;
+  const amt = ((parseFloat($("riglip").value) || 100) / 100) * LIP_GAIN;
 
   // Each entry returns a displacement for one vertex, given its offset within the lip frame.
   const SHAPES = {
