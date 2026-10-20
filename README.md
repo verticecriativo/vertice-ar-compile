@@ -20,6 +20,12 @@ its index), choose content, preview against the real tracker, then export either
 1 nose tip, 152 chin). `faceOccluder` is on by default — a head-shaped mask hiding geometry behind
 the face, without which glasses arms and hats render through the head.
 
+**QR code** — generate the code that points at the experience, client-side. Brand colours, four
+error-correction levels, an optional Vértice mark knocked into the centre (forces level H, covers
+~22%), and **vector SVG** output plus PNG. Shows the module count as you type, because density is
+what makes a code fail when scanned off a screen: the bare URL is 33×33 at level H, the same URL
+with campaign parameters is 49×49.
+
 **Content types** — `.glb`, video, image, plane, box or text, each with scale, position and rotation.
 
 **Tracking options**, taken from the component schemas rather than the docs:

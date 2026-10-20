@@ -13,6 +13,7 @@
      Runs in this tab: no image, model or compiled target is uploaded anywhere. -->
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
   *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
   :root { color-scheme:dark; }
@@ -64,6 +65,9 @@
   pre { margin-top:14px; padding:14px; background:#13161C; border:1px solid #2E323D; border-radius:8px;
     overflow:auto; font-family:'JetBrains Mono',monospace; font-size:.72rem; line-height:1.55;
     color:#AEB4BF; max-height:280px; display:none; white-space:pre; }
+  #qprev { display:none; margin-top:16px; padding:18px; background:#F6F6F8; border-radius:10px;
+           max-width:320px; }
+  #qprev svg { width:100%; height:auto; display:block; }
   footer { margin-top:28px; font-size:.75rem; color:#5C616D; line-height:1.7; }
   a { color:#E0A24C; text-decoration:none; } a:hover { text-decoration:underline; }
 </style>
@@ -87,6 +91,7 @@
 <nav>
   <button id="nav-image" aria-current="true">Image tracking</button>
   <button id="nav-face">Face tracking</button>
+  <button id="nav-qr">QR code</button>
   <div class="navnote">Settings persist in this browser. Files do not — re-pick them after a reload.</div>
 </nav>
 <div class="panel" id="panel-image">
@@ -255,6 +260,42 @@
   <div class="status" id="f3"></div>
   <iframe id="fpv" allow="camera; gyroscope; accelerometer; magnetometer; xr-spatial-tracking"></iframe>
   <pre id="fout"></pre>
+</section>
+</div>
+<div class="panel" id="panel-qr" hidden>
+<section>
+  <div class="step">Step 1</div>
+  <h2>Where it points</h2>
+  <p class="hint">The code a visitor scans to reach the experience. Keep the URL short — measured:
+  <span class="mono">https://ar.verticecriativo.pt</span> is <b>33×33 modules</b> at level&nbsp;H,
+  and the same URL with campaign parameters is <b>49×49</b>. Half again as dense, for nothing a
+  visitor can see, and it is density that makes a code fail off a glossy screen.</p>
+  <div class="grid">
+    <div class="fld" style="grid-column:1/-1"><label>URL</label>
+      <input id="qurl" value="https://ar.verticecriativo.pt" data-persist></div>
+    <div class="fld"><label>Error correction</label><select id="qec" data-persist>
+      <option value="L">L · 7%</option><option value="M">M · 15%</option>
+      <option value="Q">Q · 25%</option><option value="H" selected>H · 30%</option>
+    </select></div>
+    <div class="fld"><label>Dark</label><input id="qdark" value="#17191F" data-persist></div>
+    <div class="fld"><label>Light</label><input id="qlight" value="#F6F6F8" data-persist></div>
+    <div class="fld"><label>PNG size (px)</label><input id="qpx" value="1024" data-persist></div>
+  </div>
+  <div class="row">
+    <label class="chk"><input type="checkbox" id="qmark" data-persist> Vértice mark in the centre</label>
+    <button id="qgen" class="ghost sm">Refresh</button>
+  </div>
+  <p class="hint" style="margin-top:8px">The centre mark forces level&nbsp;H and covers about 22% of
+  the code — within what H can recover, but always test the printed or on-screen result before you
+  rely on it. Dark-on-light scans most reliably; inverting works on most readers, not all.</p>
+  <div class="status" id="q1"></div>
+  <div id="qprev"></div>
+  <div class="row">
+    <button id="qsvg" disabled>Download SVG</button>
+    <button id="qpng" class="ghost" disabled>Download PNG</button>
+  </div>
+  <p class="hint" style="margin-top:10px">SVG is vector — it scales to any slide or print size
+  without softening. PNG is for tools that will not take SVG.</p>
 </section>
 </div>
 </div>

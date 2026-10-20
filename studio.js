@@ -292,3 +292,105 @@ $("nav-face").addEventListener("click", () => show("face"));
 loadSettings();
 renderTargets();
 ["i", "f"].forEach((p) => $(p + "kind").dispatchEvent(new Event("change")));
+
+// ---------- QR MODE ----------
+// qrcode-generator exposes isDark(r,c) and getModuleCount(), so the SVG is built here rather than
+// taken from createSvgTag() — that gives brand colours, a correct quiet zone, and a knocked-out
+// centre for the mark. Square modules on purpose: rounded ones scan worse on cheap readers.
+const MARK_POLYS = [
+  ["#191b21", "100,99.85 0,99.85 50,49.87"],
+  ["#22242b", "99.92,0 100,99.85 50,49.87"],
+  ["#3a3e48", "0.13,0 99.92,0 50,49.87"],
+  ["#2c2f37", "0.08,99.85 0.13,0 50,49.87"],
+  ["#e0a24c", "0.22,0 48.5,48.1 48.2,48.42 0.13,0.17"],
+];
+
+function buildQR() {
+  const url = $("qurl").value.trim();
+  if (!url) { say("q1", "Enter a URL.", "err"); return null; }
+  const withMark = $("qmark").checked;
+  const ec = withMark ? "H" : $("qec").value;        // a centre mark needs the 30% recovery level
+  if (withMark && $("qec").value !== "H") $("qec").value = "H";
+
+  let qr;
+  try {
+    qr = window.qrcode(0, ec);
+    qr.addData(url);
+    qr.make();
+  } catch (err) { say("q1", "Could not encode: " + err.message, "err"); return null; }
+
+  const n = qr.getModuleCount();
+  const quiet = 4;                                   // the spec's minimum quiet zone
+  const total = n + quiet * 2;
+  const dark = $("qdark").value.trim() || "#17191F";
+  const light = $("qlight").value.trim() || "#F6F6F8";
+
+  let body = `<rect width="${total}" height="${total}" fill="${light}"/>`;
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (qr.isDark(r, c)) body += `<rect x="${c + quiet}" y="${r + quiet}" width="1" height="1" fill="${dark}"/>`;
+    }
+  }
+  if (withMark) {
+    // knock a hole in the modules, then drop the mark in it. ~22% of the width keeps the payload
+    // recoverable at level H.
+    const side = Math.round(total * 0.22);
+    const off = (total - side) / 2;
+    const pad = Math.max(1, Math.round(side * 0.12));
+    body += `<rect x="${off - pad}" y="${off - pad}" width="${side + pad * 2}" height="${side + pad * 2}" fill="${light}"/>`;
+    body += `<g transform="translate(${off},${off}) scale(${side / 100})">`;
+    MARK_POLYS.forEach(([f, p]) => { body += `<polygon points="${p}" fill="${f}"/>`; });
+    body += `<circle cx="49.9" cy="49.85" r="2.25" fill="#e0a24c"/></g>`;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" `
+    + `width="${total}" height="${total}" shape-rendering="crispEdges" role="img" `
+    + `aria-label="QR code for ${esc(url)}">${body}</svg>`;
+
+  const notes = [`${n}×${n} modules`, `level ${ec}`, `${url.length} chars`];
+  if (n > 45) notes.push("dense — shorten the URL if it scans badly off a screen");
+  if (withMark) notes.push("centre mark covers ~22%, recoverable at H");
+  say("q1", notes.join(" · "), n > 57 ? "err" : "ok");
+  return { svg, total, url };
+}
+
+function renderQR() {
+  const r = buildQR(); if (!r) return;
+  $("qprev").innerHTML = r.svg;
+  $("qprev").style.display = "block";
+  $("qsvg").disabled = false; $("qpng").disabled = false;
+  window.__qr = r;
+}
+["qurl", "qec", "qdark", "qlight"].forEach((id) => $(id).addEventListener("input", renderQR));
+$("qmark").addEventListener("change", renderQR);
+$("qgen").addEventListener("click", renderQR);
+
+$("qsvg").addEventListener("click", () => {
+  if (!window.__qr) return;
+  const u = URL.createObjectURL(new Blob([window.__qr.svg], { type: "image/svg+xml" }));
+  dlBlob(u, "vertice-ar-qr.svg");
+  setTimeout(() => URL.revokeObjectURL(u), 8000);
+});
+
+$("qpng").addEventListener("click", () => {
+  if (!window.__qr) return;
+  const px = Math.max(256, parseInt($("qpx").value, 10) || 1024);
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = px;
+    const ctx = cv.getContext("2d");
+    ctx.imageSmoothingEnabled = false;            // keep module edges hard
+    ctx.drawImage(img, 0, 0, px, px);
+    cv.toBlob((b) => {
+      const u = URL.createObjectURL(b);
+      dlBlob(u, `vertice-ar-qr-${px}.png`);
+      setTimeout(() => URL.revokeObjectURL(u), 8000);
+    }, "image/png");
+  };
+  img.onerror = () => say("q1", "PNG export failed — the SVG did not rasterise.", "err");
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(window.__qr.svg);
+});
+
+PANELS.qr = ["nav-qr", "panel-qr"];
+$("nav-qr").addEventListener("click", () => show("qr"));
+renderQR();
