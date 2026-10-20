@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20u";
+const BUILD = "2026-10-20v";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -195,7 +195,8 @@ $("compile").addEventListener("click", async () => {
     mindBuffer = await compiler.exportData();
     mindURL = URL.createObjectURL(new Blob([mindBuffer]));
     $("barfill").style.width = "100%";
-    $("dl").disabled = false; $("run").disabled = false; $("bundle").disabled = false;
+    $("dl").disabled = false;
+      refreshImageButtons();
     say("s1", `Compiled ${targets.length} target(s) — ${(mindBuffer.byteLength / 1024).toFixed(0)} KB.`, "ok");
   } catch (err) {
     say("s1", "Compile failed: " + err.message, "err");
@@ -418,6 +419,24 @@ function inspectModel(file) {
   }).catch(() => {});
 }
 
+// Image mode needs BOTH a compiled .mind and, for file-backed content, the file itself. Without
+// the file contentTag() returns "" and the generated anchor comes out EMPTY — which tracks the
+// target perfectly and shows nothing, saying nothing about why. Face mode guarded this from the
+// start; image mode did not, and the default content type is "3D model (.glb)".
+function refreshImageButtons() {
+  const c = contentState("i");
+  const missing = needsFile(c.kind) && !c.url;
+  $("run").disabled = !mindURL || missing;
+  $("gen").disabled = !mindURL || missing;
+  $("bundle").disabled = !mindURL || missing;
+  if (missing) {
+    say("s4", `Choose a ${c.kind === "glb" ? ".glb model" : c.kind} file above, or set Type to a `
+      + `shape such as Box — otherwise the target tracks and nothing appears.`, "err");
+  } else if (($("s4").textContent || "").startsWith("Choose a")) {
+    say("s4", "");
+  }
+}
+
 // ---------- content pickers (shared wiring) ----------
 ["i", "f"].forEach((pfx) => {
   const kind = $(pfx + "kind"), file = $(pfx + "file");
@@ -435,6 +454,7 @@ function inspectModel(file) {
     }
     if (pfx === "f") $("frun").disabled = needsFile(k) && !window.__assets.f;
     if (pfx === "f") $("fgen").disabled = needsFile(k) && !window.__assets.f;
+    if (pfx === "i") refreshImageButtons();
   };
   kind.addEventListener("change", () => { sync(); saveSettings(); });
   file.addEventListener("change", (e) => {
@@ -446,6 +466,7 @@ function inspectModel(file) {
       `${f.name} — ${(f.size / 1024 / 1024).toFixed(2)} MB` + (big ? "  ⚠ over 3 MB is slow on venue Wi-Fi" : ""),
       big ? "err" : "ok");
     sync();
+    if (pfx === "i") refreshImageButtons();
     if (pfx === "f" && kind.value === "glb") inspectModel(f);
   });
   sync();
