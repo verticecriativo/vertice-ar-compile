@@ -22,6 +22,8 @@
   p { font-size:.9rem; line-height:1.65; color:#AEB4BF; }
   code { color:#E0A24C; font-family:ui-monospace,monospace; font-size:.85em; }
   .hide { display:none !important; }
+  #build { position:fixed; left:8px; bottom:6px; z-index:10000; font-size:10px;
+    color:#AEB4BF; opacity:.55; pointer-events:none; font-family:ui-monospace,monospace; }
   /* No sizing rules for the scene here, deliberately. mind-ar owns that geometry: it cover-fits
      the video to the container and copies the same pixel size and negative offsets onto the
      <a-scene>, which is what keeps the 3D registered to the camera image. Forcing width/height
@@ -31,8 +33,10 @@
 </style>
 </head>
 <body>
+<div id="build"></div>
 <div id="msg"><div><h1 id="t">Starting…</h1><p id="p">Asking for the camera.</p></div></div>
 <script>
+const BUILD = "2026-10-20e";
 const t = document.getElementById("t"), p = document.getElementById("p"), msg = document.getElementById("msg");
 const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; };
 
@@ -121,6 +125,10 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
   // Straight into body: mind-ar takes its container from sceneEl.parentNode, and the video it
   // appends there is position:absolute with z-index:-2, so the container must be the full
   // viewport and must not paint a background over the video.
+  const mv = (cfg.libs.find((u) => u.includes("mind-ar@")) || "").split("mind-ar@")[1] || "?";
+  document.getElementById("build").textContent =
+    cfg.mode + " · mind-ar " + mv.split("/")[0] + " · build " + BUILD;
+
   document.body.insertAdjacentHTML("beforeend", cfg.scene);
   const sc = document.querySelector("a-scene");
   if (!sc) return fail("Scene did not build", "The generated markup produced no &lt;a-scene&gt;.");

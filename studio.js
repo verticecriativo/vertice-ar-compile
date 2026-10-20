@@ -197,7 +197,9 @@ function openPreview(mode, doc) {
   if (!m) return false;
   try { sessionStorage.setItem("vertice_ar_preview", JSON.stringify({ mode, scene: m[0], libs: libsFor(mode) })); }
   catch (e) { return false; }
-  return !!window.open("preview.html", "_blank");
+  // Pages serves preview.html with max-age=600, and a stale preview is indistinguishable from
+  // a broken one. The query string guarantees the tab fetches the current build.
+  return !!window.open("preview.html?v=" + Date.now(), "_blank");
 }
 
 function imageHTML(mindSrc, assetSrcMode) {
