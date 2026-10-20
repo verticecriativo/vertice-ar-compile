@@ -6,7 +6,7 @@
 <title>Vértice — AR preview</title>
 <meta name="robots" content="noindex">
 <style>
-  html,body { margin:0; height:100%; background:#0C0D11; color:#F6F6F8;
+  html,body { margin:0; width:100%; height:100%; background:#0C0D11; color:#F6F6F8;
     font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; overflow:hidden; }
   #msg { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
     padding:28px; text-align:center; z-index:9999; background:#0C0D11; }
@@ -15,15 +15,16 @@
   p { font-size:.9rem; line-height:1.65; color:#AEB4BF; }
   code { color:#E0A24C; font-family:ui-monospace,monospace; font-size:.85em; }
   .hide { display:none !important; }
-  /* The generated scene carries `embedded`, so A-Frame sizes the canvas to its PARENT.
-     Without an explicit box here the canvas collapses to zero height — a white screen again. */
-  #scene { position:fixed; inset:0; }
-  #scene a-scene, #scene canvas, #scene video { width:100% !important; height:100% !important; }
+  /* No sizing rules for the scene here, deliberately. mind-ar owns that geometry: it cover-fits
+     the video to the container and copies the same pixel size and negative offsets onto the
+     <a-scene>, which is what keeps the 3D registered to the camera image. Forcing width/height
+     overrode the sizes, left the offsets, and the result was a shifted, non-filling camera.
+     The scene is appended straight to <body> so the container mind-ar measures
+     (sceneEl.parentNode) is the full-viewport body — the arrangement upstream's own examples use. */
 </style>
 </head>
 <body>
 <div id="msg"><div><h1 id="t">Starting…</h1><p id="p">Asking for the camera.</p></div></div>
-<div id="scene"></div>
 <script>
 const t = document.getElementById("t"), p = document.getElementById("p"), msg = document.getElementById("msg");
 const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; };
@@ -110,7 +111,10 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
     "<code>" + need + "</code> is missing, so the bundle loaded but failed to execute. "
     + "Check the console for a parse error.");
 
-  document.getElementById("scene").innerHTML = cfg.scene;
+  // Straight into body: mind-ar takes its container from sceneEl.parentNode, and the video it
+  // appends there is position:absolute with z-index:-2, so the container must be the full
+  // viewport and must not paint a background over the video.
+  document.body.insertAdjacentHTML("beforeend", cfg.scene);
   const sc = document.querySelector("a-scene");
   if (!sc) return fail("Scene did not build", "The generated markup produced no &lt;a-scene&gt;.");
 
