@@ -127,6 +127,12 @@ async function loadFromFile(file) {
     refreshColors();
 
     const existing = mesh.morphTargetDictionary ? Object.keys(mesh.morphTargetDictionary).length : 0;
+    // Generating onto a model that already has a full ARKit set replaces ten of its shapes with
+    // cruder ones while the other forty-one stay as the artist made them. The mouth then gets
+    // deformed by two systems that were never designed together.
+    if (existing >= 20) say("rig3", `This model already carries ${existing} morph targets. `
+      + `Generating will REPLACE the ten mouth shapes with generated ones and leave the rest — `
+      + `fine for trying the tool, but for real work rig a model that has none.`, "err");
     say("rig1", `${file.name} — ${(file.size / 1048576).toFixed(2)} MB · mesh "${mesh.name || "?"}" · `
       + `${pos.count.toLocaleString()} vertices` + (existing ? ` · ${existing} existing morph targets` : "")
       + (baked ? `  ⚠ it had ${baked} non-zero default weight(s) baked in — reset to neutral here` : ""), "ok");
