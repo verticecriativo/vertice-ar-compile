@@ -61,12 +61,12 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
     s.src = src; s.onload = res; s.onerror = () => rej(new Error(src));
     document.head.appendChild(s);
   });
+  // The studio hands us the exact URLs it baked into the export, so the preview can never run a
+  // different library version than the generated page does.
+  if (!Array.isArray(cfg.libs) || !cfg.libs.length) return fail("Nothing to load",
+    "The studio did not say which libraries to use. Reload the studio and press preview again.");
   try {
-    await load("https://aframe.io/releases/1.4.1/aframe.min.js");
-    await load("https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js");
-    await load(cfg.mode === "face"
-      ? "https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-face-aframe.prod.js"
-      : "https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js");
+    for (const u of cfg.libs) await load(u);
   } catch (err) {
     return fail("A library did not load", "Blocked or offline: <code>" + err.message + "</code>");
   }
@@ -100,6 +100,15 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
       cfg.scene = cfg.scene.split(u).join(local);
     }
   }
+
+  // A script that fails to PARSE still fires `load`, never `error` — which is exactly how a
+  // broken upstream bundle produced a silent black screen. Check the library actually registered.
+  const need = cfg.mode === "face" ? "mindar-face" : "mindar-image";
+  if (!window.AFRAME) return fail("A-Frame did not initialise",
+    "The library loaded but defined nothing. Check the console for a parse error.");
+  if (!AFRAME.components[need]) return fail("The AR runtime did not register",
+    "<code>" + need + "</code> is missing, so the bundle loaded but failed to execute. "
+    + "Check the console for a parse error.");
 
   document.getElementById("scene").innerHTML = cfg.scene;
   const sc = document.querySelector("a-scene");

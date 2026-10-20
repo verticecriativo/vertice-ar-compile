@@ -12,6 +12,20 @@ const say = (el, msg, cls) => { const n = $(el); if (!n) return; n.textContent =
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 const CLOSE = "<" + "/script>";
 
+// The library URLs live here only. The export builders inline them and the preview tab is HANDED
+// them, so a version can never be bumped in one place and left stale in another.
+// Face is 1.2.5 while image is 1.2.1 on purpose: mind-ar@1.2.1's mindar-face-aframe.prod.js is a
+// broken artifact upstream — it fails to parse ("Illegal return statement"), so face tracking
+// could never have worked on it. The image bundle at 1.2.1 parses and is deliberately left alone,
+// because image tracking is coupled to the .mind the pinned 1.1.5 compiler produces.
+const LIB = {
+  aframe: "https://aframe.io/releases/1.4.1/aframe.min.js",
+  extras: "https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js",
+  image: "https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js",
+  face: "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js",
+};
+const libsFor = (mode) => [LIB.aframe, LIB.extras, mode === "face" ? LIB.face : LIB.image];
+
 // ---------- persistence (settings only; blob URLs cannot survive a reload) ----------
 const SKEY = "vertice-ar-studio-v1";
 const saveSettings = () => {
@@ -181,7 +195,7 @@ window.addEventListener("message", async (ev) => {
 function openPreview(mode, doc) {
   const m = doc.match(/<a-scene[\s\S]*<\/a-scene>/);
   if (!m) return false;
-  try { sessionStorage.setItem("vertice_ar_preview", JSON.stringify({ mode, scene: m[0] })); }
+  try { sessionStorage.setItem("vertice_ar_preview", JSON.stringify({ mode, scene: m[0], libs: libsFor(mode) })); }
   catch (e) { return false; }
   return !!window.open("preview.html", "_blank");
 }
@@ -197,9 +211,9 @@ function imageHTML(mindSrc, assetSrcMode) {
   const asset = assetTag(c, id);
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="https://aframe.io/releases/1.4.1/aframe.min.js">${CLOSE}
-<script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js">${CLOSE}
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js">${CLOSE}
+<script src="${LIB.aframe}">${CLOSE}
+<script src="${LIB.extras}">${CLOSE}
+<script src="${LIB.image}">${CLOSE}
 <style>body{margin:0;overflow:hidden}</style></head><body>
 <a-scene mindar-image="imageTargetSrc: ${mindSrc}; ${trackOpts("i", false)}"
   embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
@@ -247,15 +261,19 @@ $("bundle").addEventListener("click", async () => {
 });
 
 // ---------- FACE MODE ----------
+// Face runtime is 1.2.5, not 1.2.1 like image: mind-ar@1.2.1's mindar-face-aframe.prod.js is a
+// broken artifact upstream — it fails to parse with "Illegal return statement", so face tracking
+// could never have worked on it. The image bundle at 1.2.1 parses and is left alone, because image
+// tracking is coupled to the .mind the 1.1.5 compiler produces.
 function faceHTML() {
   const c = contentState("f");
   const id = "f0";
   const asset = assetTag(c, id);
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<script src="https://aframe.io/releases/1.4.1/aframe.min.js">${CLOSE}
-<script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js">${CLOSE}
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-face-aframe.prod.js">${CLOSE}
+<script src="${LIB.aframe}">${CLOSE}
+<script src="${LIB.extras}">${CLOSE}
+<script src="${LIB.face}">${CLOSE}
 <style>body{margin:0;overflow:hidden}</style></head><body>
 <a-scene mindar-face="${trackOpts("f", true)}"
   embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
