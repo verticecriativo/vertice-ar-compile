@@ -5,6 +5,24 @@ that emits, alongside the `.mind`, a manifest binding it to the inputs and the t
 
 This repo currently holds the **determinism harness** — the measurement the whole idea rests on.
 
+## The studio
+
+**[verticecriativo.github.io/vertice-ar-compile](https://verticecriativo.github.io/vertice-ar-compile/)**
+— compile an image target and preview a model, entirely in the browser. Nothing is uploaded: the
+image, the compiled `.mind` and the `.glb` never leave the tab.
+
+- pick an image → compile → download `target.mind`
+- pick a `.glb` → set scale, position and rotation → preview with the real tracker
+- generate a ready-to-use `index.html` with those settings baked in
+
+Versions are pinned deliberately: **compiler `mind-ar@1.1.5`** (the build upstream's own tool uses,
+so targets behave identically) and **runtime `mind-ar@1.2.1` + A-Frame 1.4.1** (what our working
+experience runs). The preview is a same-origin `srcdoc` iframe precisely so the two versions cannot
+collide on one page.
+
+It also removes a dependency: until now the only way to compile a target was upstream's GitHub
+Pages, which has had no commit since June 2024.
+
 ## The finding (2026-10-20)
 
 Compiling the same 1000×1000 target with `OfflineCompiler`, in pinned containers:

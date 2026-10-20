@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vértice — AR Studio</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#17191F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap">
+<!-- The COMPILER. Pinned to 1.1.5, the same build the upstream tool uses, so compiled targets
+     behave identically. Runs entirely in this tab: no image is uploaded anywhere. -->
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js"></script>
+<style>
+  *,*::before,*::after { box-sizing: border-box; margin:0; padding:0; }
+  :root { color-scheme: dark; }
+  body { background:#17191F; color:#F6F6F8; font-family:'Space Grotesk',-apple-system,sans-serif;
+         -webkit-font-smoothing:antialiased; padding:32px 20px 72px; }
+  .wrap { max-width:60rem; margin:0 auto; }
+  header { display:flex; align-items:center; gap:16px; padding-bottom:24px;
+           border-bottom:1px solid #2E323D; }
+  header svg { width:40px; height:40px; }
+  h1 { font-size:1.35rem; font-weight:600; letter-spacing:-.02em; }
+  .sub { font-size:.8rem; color:#5C616D; margin-top:2px; }
+  .mono { font-family:'JetBrains Mono',ui-monospace,monospace; }
+  section { margin-top:28px; padding:22px; background:#1E212A; border:1px solid #2E323D;
+            border-radius:12px; }
+  .step { font-family:'JetBrains Mono',monospace; font-size:.7rem; letter-spacing:.18em;
+          text-transform:uppercase; color:#E0A24C; }
+  h2 { font-size:1.05rem; font-weight:600; margin:8px 0 4px; letter-spacing:-.01em; }
+  p.hint { font-size:.85rem; line-height:1.6; color:#AEB4BF; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:16px; }
+  button, .filebtn { font-family:inherit; font-size:.85rem; font-weight:500; padding:9px 16px;
+    border-radius:8px; border:1px solid transparent; cursor:pointer; background:#A15E1E; color:#fff; }
+  button.ghost, .filebtn { background:transparent; border-color:#3A3E48; color:#F6F6F8; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  input[type=file] { display:none; }
+  label.filebtn { display:inline-block; }
+  .thumb { max-width:200px; max-height:200px; border-radius:8px; border:1px solid #2E323D;
+           display:block; margin-top:14px; }
+  .bar { height:6px; background:#2E323D; border-radius:3px; overflow:hidden; margin-top:14px; display:none; }
+  .bar > i { display:block; height:100%; width:0; background:#E0A24C; transition:width .2s; }
+  .status { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:#AEB4BF; margin-top:10px; min-height:1.2em; }
+  .ok { color:#6FBF95; } .err { color:#F87171; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:12px; margin-top:16px; }
+  .fld label { display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.1em;
+               color:#5C616D; margin-bottom:5px; }
+  .fld input { width:100%; padding:8px 10px; background:#17191F; border:1px solid #2E323D;
+               border-radius:7px; color:#F6F6F8; font-family:'JetBrains Mono',monospace; font-size:.8rem; }
+  iframe { width:100%; height:62vh; border:1px solid #2E323D; border-radius:10px; margin-top:16px;
+           background:#000; display:none; }
+  pre { margin-top:14px; padding:14px; background:#13161C; border:1px solid #2E323D; border-radius:8px;
+        overflow:auto; font-family:'JetBrains Mono',monospace; font-size:.72rem; line-height:1.55;
+        color:#AEB4BF; max-height:260px; display:none; white-space:pre; }
+  footer { margin-top:32px; font-size:.75rem; color:#5C616D; line-height:1.7; }
+  a { color:#E0A24C; text-decoration:none; } a:hover { text-decoration:underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <svg viewBox="0 0 40 40" aria-label="Vértice" role="img">
+    <polygon points="40,39.94 0,39.94 20,19.95" fill="#191b21"/>
+    <polygon points="39.97,0 40,39.94 20,19.95" fill="#22242b"/>
+    <polygon points="0.05,0 39.97,0 20,19.95" fill="#3a3e48"/>
+    <polygon points="0.03,39.94 0.05,0 20,19.95" fill="#2c2f37"/>
+    <polygon points="0.09,0 19.4,19.24 19.28,19.37 0.05,0.07" fill="#e0a24c"/>
+    <circle cx="19.97" cy="19.92" r="0.9" fill="#e0a24c"/>
+  </svg>
+  <div>
+    <h1>AR Studio</h1>
+    <div class="sub">Compile an image target and preview a model. Everything runs in this tab — nothing is uploaded.</div>
+  </div>
+</header>
+
+<section>
+  <div class="step">Step 1</div>
+  <h2>Image target</h2>
+  <p class="hint">The thing a phone points at. Flat, matte and feature-rich tracks best — lots of
+  distinct corners, not large flat areas. Around 1000&nbsp;px on the long edge is plenty.</p>
+  <div class="row">
+    <label class="filebtn">Choose image<input type="file" id="img" accept="image/*"></label>
+    <button id="compile" disabled>Compile target</button>
+    <button id="dl" class="ghost" disabled>Download .mind</button>
+  </div>
+  <div class="bar" id="bar"><i id="barfill"></i></div>
+  <div class="status" id="s1"></div>
+  <img class="thumb" id="thumb" alt="" hidden>
+</section>
+
+<section>
+  <div class="step">Step 2</div>
+  <h2>Model</h2>
+  <p class="hint">A <span class="mono">.glb</span> is the safe choice — one file, geometry and
+  textures together. Keep it small: on a show floor it loads over congested Wi-Fi.</p>
+  <div class="row">
+    <label class="filebtn">Choose .glb<input type="file" id="glb" accept=".glb,model/gltf-binary"></label>
+  </div>
+  <div class="status" id="s2"></div>
+</section>
+
+<section>
+  <div class="step">Step 3</div>
+  <h2>Placement</h2>
+  <p class="hint">Where the model sits relative to the target. The target is one unit wide, so
+  <span class="mono">0 0 0</span> is its centre and <span class="mono">scale 1</span> means
+  roughly target-sized.</p>
+  <div class="grid">
+    <div class="fld"><label>Scale</label><input id="sc" value="0.5"></div>
+    <div class="fld"><label>Pos X</label><input id="px" value="0"></div>
+    <div class="fld"><label>Pos Y</label><input id="py" value="0"></div>
+    <div class="fld"><label>Pos Z</label><input id="pz" value="0"></div>
+    <div class="fld"><label>Rot X</label><input id="rx" value="0"></div>
+    <div class="fld"><label>Rot Y</label><input id="ry" value="0"></div>
+    <div class="fld"><label>Rot Z</label><input id="rz" value="0"></div>
+  </div>
+</section>
+
+<section>
+  <div class="step">Step 4</div>
+  <h2>Preview</h2>
+  <p class="hint">Runs the real tracker with your compiled target and model. It will ask for the
+  camera. Point it at the target — on screen works, but print tracks better.</p>
+  <div class="row">
+    <button id="run" disabled>Start preview</button>
+    <button id="stop" class="ghost">Stop</button>
+    <button id="gen" class="ghost" disabled>Generate index.html</button>
+  </div>
+  <div class="status" id="s4"></div>
+  <iframe id="pv" allow="camera; gyroscope; accelerometer; magnetometer; xr-spatial-tracking"></iframe>
+  <pre id="out"></pre>
+</section>
+
+<footer>
+  Compiler pinned to <span class="mono">mind-ar@1.1.5</span>, runtime to
+  <span class="mono">mind-ar@1.2.1</span> + <span class="mono">A-Frame 1.4.1</span> — the versions
+  the upstream tool and our working experience use. A <span class="mono">.mind</span> is compiled
+  against one specific image and tracks only that image.<br>
+  Determinism, and why the toolchain is pinned:
+  <a href="https://github.com/verticecriativo/vertice-ar-compile">vertice-ar-compile</a>.
+</footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const say = (el, msg, cls) => { const n = $(el); n.textContent = msg; n.className = "status " + (cls||""); };
+
+let targetImage = null, mindBuffer = null, mindURL = null, glbURL = null, glbName = "";
+
+$("img").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const url = URL.createObjectURL(f);
+  const im = new Image();
+  im.onload = () => {
+    targetImage = im;
+    $("thumb").src = url; $("thumb").hidden = false;
+    $("compile").disabled = false;
+    say("s1", `${f.name} — ${im.width}x${im.height}, ${(f.size/1024).toFixed(0)} KB. Ready to compile.`);
+    if (Math.max(im.width, im.height) > 2048)
+      say("s1", `${f.name} — ${im.width}x${im.height}. That is large; ~1000 px is usually enough and compiles far faster.`, "err");
+  };
+  im.onerror = () => say("s1", "Could not read that image.", "err");
+  im.src = url;
+});
+
+$("compile").addEventListener("click", async () => {
+  if (!targetImage) return;
+  $("compile").disabled = true; $("dl").disabled = true;
+  $("bar").style.display = "block"; $("barfill").style.width = "0%";
+  say("s1", "Compiling… this is CPU-bound and can take a minute.");
+  try {
+    const compiler = new window.MINDAR.IMAGE.Compiler();
+    await compiler.compileImageTargets([targetImage], (p) => {
+      $("barfill").style.width = Math.max(2, Math.round(p)) + "%";
+    });
+    mindBuffer = await compiler.exportData();
+    if (mindURL) URL.revokeObjectURL(mindURL);
+    mindURL = URL.createObjectURL(new Blob([mindBuffer]));
+    $("barfill").style.width = "100%";
+    $("dl").disabled = false; $("gen").disabled = false;
+    if (glbURL) $("run").disabled = false;
+    say("s1", `Compiled — ${(mindBuffer.byteLength/1024).toFixed(0)} KB. Download it, or preview below.`, "ok");
+  } catch (err) {
+    say("s1", "Compile failed: " + err.message, "err");
+  } finally { $("compile").disabled = false; }
+});
+
+$("dl").addEventListener("click", () => {
+  if (!mindURL) return;
+  const a = document.createElement("a");
+  a.href = mindURL; a.download = "target.mind"; a.click();
+});
+
+$("glb").addEventListener("change", (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  if (glbURL) URL.revokeObjectURL(glbURL);
+  glbURL = URL.createObjectURL(f); glbName = f.name;
+  say("s2", `${f.name} — ${(f.size/1024/1024).toFixed(2)} MB`
+    + (f.size > 3*1024*1024 ? "  ⚠ over 3 MB is slow on venue Wi-Fi" : ""),
+    f.size > 3*1024*1024 ? "err" : "ok");
+  if (mindURL) $("run").disabled = false;
+});
+
+const placement = () => ({
+  scale: $("sc").value.trim() || "1",
+  pos: [$("px").value.trim()||"0", $("py").value.trim()||"0", $("pz").value.trim()||"0"].join(" "),
+  rot: [$("rx").value.trim()||"0", $("ry").value.trim()||"0", $("rz").value.trim()||"0"].join(" ")
+});
+
+// The preview runs in a same-origin iframe so the runtime (1.2.1) cannot collide with the
+// compiler (1.1.5) loaded on this page. srcdoc inherits our origin, so the blob: URLs resolve.
+const sceneHTML = (mind, model, p) => `<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://aframe.io/releases/1.4.1/aframe.min.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js"><\/script>
+<style>body{margin:0;overflow:hidden}</style></head><body>
+<a-scene mindar-image="imageTargetSrc: ${mind}; uiScanning: no; uiLoading: no; maxTrack: 1"
+  embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
+  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-assets><a-asset-item id="m" src="${model}"></a-asset-item></a-assets>
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-entity mindar-image-target="targetIndex: 0">
+    <a-gltf-model src="#m" position="${p.pos}" rotation="${p.rot}"
+      scale="${p.scale} ${p.scale} ${p.scale}" animation-mixer></a-gltf-model>
+  </a-entity>
+</a-scene></body></html>`;
+
+$("run").addEventListener("click", () => {
+  if (!mindURL || !glbURL) return;
+  $("pv").srcdoc = sceneHTML(mindURL, glbURL, placement());
+  $("pv").style.display = "block";
+  say("s4", "Allow the camera, then point it at the target. Nothing appears until it locks on.");
+});
+
+$("stop").addEventListener("click", () => {
+  $("pv").srcdoc = ""; $("pv").style.display = "none"; say("s4", "");
+});
+
+$("gen").addEventListener("click", () => {
+  const p = placement();
+  // sceneHTML already yields a correct closing tag: in a template literal "<\/script>"
+  // evaluates to the real thing. The backslash exists only so the HTML parser does not end
+  // this script element early — which a literal one in source would do.
+  $("out").textContent = sceneHTML("./target.mind", "./model.glb", p)
+    + "\n\n<!-- Save as index.html next to target.mind and " + (glbName || "model.glb")
+    + " (renamed model.glb). Keep the CNAME file if you drop this into vertice-ar. -->";
+  $("out").style.display = "block";
+  say("s4", "Generated below — the paths are relative, so put all three files in one folder.", "ok");
+});
+</script>
+</body>
+</html>
