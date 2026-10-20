@@ -71,6 +71,20 @@
   #qprev svg { width:100%; height:auto; display:block; }
   footer { margin-top:28px; font-size:.75rem; color:#5C616D; line-height:1.7; }
   a { color:#E0A24C; text-decoration:none; } a:hover { text-decoration:underline; }
+  details.help { margin-top:10px; border-top:1px solid #2E323D; padding-top:12px; }
+  details.help > summary { color:#F6F6F8; font-weight:500; }
+  details.help[open] > summary { color:#E0A24C; margin-bottom:8px; }
+  details.help p, details.help li { font-size:.84rem; line-height:1.65; color:#AEB4BF; }
+  details.help p { margin-top:8px; }
+  details.help ol { margin:6px 0 0 1.1rem; } details.help li { margin-bottom:5px; }
+  details.help b { color:#F6F6F8; font-weight:500; }
+  details.help table { border-collapse:collapse; margin-top:8px; width:100%; }
+  details.help td { font-size:.84rem; line-height:1.6; color:#AEB4BF; padding:4px 10px 4px 0;
+    border-bottom:1px solid #2E323D; vertical-align:top; }
+  details.help td:first-child { color:#E0A24C; width:3.2rem; white-space:nowrap; }
+  pre.snippet { display:block; margin-top:8px; padding:10px 12px; background:#13161C;
+    border:1px solid #2E323D; border-radius:7px; font-family:'JetBrains Mono',monospace;
+    font-size:.72rem; line-height:1.6; color:#AEB4BF; overflow-x:auto; white-space:pre; max-height:none; }
 
   /* ---------- PHONE ----------
      The desktop layout puts a fixed 190px nav beside the panel. At 390px that left the panel
@@ -103,6 +117,13 @@
        itself a large part of why the form felt cramped. */
     .fld input, .fld select { font-size:16px; padding:9px 10px; }
     .titem { font-size:.78rem; gap:10px; }
+    /* Nothing may establish a min-content width wider than the screen: in a column flex layout that
+       widens the whole panel and gives the document a horizontal scroll. The snippets wrap instead
+       of scrolling sideways, which reads better on a phone regardless. */
+    .panel, .panel section, details.help { min-width:0; max-width:100%; }
+    pre, pre.snippet { max-width:100%; }
+    pre.snippet { white-space:pre-wrap; overflow-wrap:anywhere; }
+    details.help td:first-child { width:2.6rem; }
     #qprev { max-width:100%; padding:14px; }
     pre { font-size:.68rem; max-height:220px; }
     footer { margin-top:20px; font-size:.72rem; }
@@ -321,6 +342,103 @@
   </div>
   <div class="status" id="f3"></div>
   <pre id="fout"></pre>
+</section>
+
+<section>
+  <div class="step">Reference</div>
+  <h2>Getting a model to talk</h2>
+  <p class="hint">Everything needed to pick a model, or work out why one does nothing. The same
+  notes, in full, are in the
+  <a href="https://github.com/verticecriativo/vertice-ar-compile/blob/main/FAQ-talking-face.md">FAQ</a>.</p>
+
+  <details class="help">
+    <summary>Quickest path</summary>
+    <ol>
+      <li>Press <b>Use test head</b> above. It loads a model bundled in this repo with all 51
+      drivable ARKit shapes, and sets type, scale, anchor and the checkbox for you.</li>
+      <li>Press <b>Start preview</b> and allow the camera.</li>
+    </ol>
+    <p>The preview corner shows <span class="mono">morphs 51/51 matched</span>. If that reads 51/51
+    and nothing moves, the problem is the setup, not the model — which is why the test head ships
+    here.</p>
+  </details>
+
+  <details class="help">
+    <summary>What a model needs — four separate things</summary>
+    <ol>
+      <li><b>Morph targets</b> (blend shapes / shape keys) at all.</li>
+      <li><b>Named with the ARKit set</b> — <span class="mono">jawOpen</span>,
+      <span class="mono">mouthPucker</span> and so on.</li>
+      <li><b>Plain glTF</b> — no KTX2, meshopt or Draco. A-Frame installs none of those loaders.</li>
+      <li><b>Light enough for a phone</b> — under ~300k triangles and ~8&nbsp;MB of textures.</li>
+    </ol>
+    <p>A model can satisfy three and still do nothing. Pick a <span class="mono">.glb</span> above
+    and all four are checked from the file alone — no camera, no upload.</p>
+    <p><b>A skeleton rig is not a blendshape rig.</b> Mixamo characters animate a body through
+    joints and have zero facial morph targets. Image-to-3D output (Meshy, Tripo) is one dense static
+    mesh — no skin, no animation, no morphs. Neither will ever talk.</p>
+  </details>
+
+  <details class="help">
+    <summary>Scale — the reason a correct model looks like nothing</summary>
+    <p>mind-ar's face space is roughly <b>centimetres</b>. The anchor sits about 100 units from the
+    camera and carries its own scale from the detected face, so the numbers are nothing like
+    A-Frame's usual metres. Measured with the bundled test head:</p>
+    <table>
+      <tr><td class="mono">1</td><td>~21% of frame height — floats on the face</td></tr>
+      <tr><td class="mono">3</td><td>~62% — covers the head. <b>Start here.</b></td></tr>
+      <tr><td class="mono">8</td><td>~160% — off screen</td></tr>
+    </table>
+    <p>The <b>Scale</b> default of <span class="mono">0.1</span> suits the box, plane and text
+    primitives. At <span class="mono">0.1</span> a head is about <b>12&nbsp;px</b> — present,
+    correctly placed, invisible.</p>
+    <p>Full-body avatars (Ready Player Me) have their origin <b>at the feet</b>, so on a face anchor
+    you see the shoes. Use a head-only model for a mask.</p>
+  </details>
+
+  <details class="help">
+    <summary>It will not load, or will not move</summary>
+    <p><b>"A-Frame cannot decode this file"</b> — KTX2, meshopt or Draco. Re-save as plain glTF,
+    which leaves geometry, morph targets and textures untouched:</p>
+    <pre class="snippet">npm install @gltf-transform/cli
+npx gltf-transform cp packed.glb plain.glb</pre>
+    <p><b>"none match the ARKit names"</b> — the same shape is spelled
+    <span class="mono">mouthSmileLeft</span>, <span class="mono">mouthSmile_L</span>,
+    <span class="mono">mouthSmile.L</span> or <span class="mono">blendShape1.mouthSmile_L</span>
+    depending on the exporter. All four are matched automatically. If it still reports 0 the names
+    are genuinely something else — rename the shape keys in Blender and re-export.</p>
+    <p><b>Too heavy</b> —
+    <span class="mono">npx gltf-transform optimize big.glb small.glb --texture-size 1024</span></p>
+    <p><b>Matched, but still still</b> — is <b>Talk with the face</b> ticked? And does the model carry
+    a baked facial animation? A clip writes the same influences every frame and wins; the generated
+    page drops <span class="mono">animation-mixer</span> automatically when morphs are driven.</p>
+  </details>
+
+  <details class="help">
+    <summary>Where to get a model</summary>
+    <p><b>Bundled and verified:</b> the test head above — 51/51 ARKit, 12k triangles, ~1&nbsp;MB,
+    MIT licensed.</p>
+    <p><b>Ready Player Me</b> — append
+    <span class="mono">?morphTargets=ARKit</span> to the avatar's
+    <span class="mono">.glb</span> URL. Tested at 51/51. Never add
+    <span class="mono">?lod=2</span>: it keeps a quarter of the triangles and the morph targets come
+    back empty.</p>
+    <p><b>You do not need all 52.</b> Whatever subset exists is driven, and the preview names what is
+    missing. A convincing mouth needs about ten:</p>
+    <pre class="snippet">jawOpen  mouthClose  mouthFunnel  mouthPucker
+mouthSmileLeft  mouthSmileRight  mouthStretchLeft
+mouthStretchRight  mouthShrugUpper  mouthRollLower</pre>
+    <p>Ten hand-sculpted shape keys on a character you already have is free and about a day's work.
+    Eyes and brows start working the moment the names exist, with no code change.</p>
+  </details>
+
+  <details class="help">
+    <summary>Does this need a microphone?</summary>
+    <p><b>No.</b> A virtual mask does not block the camera — MediaPipe still sees the real mouth in
+    the video, so the movement comes from face tracking. Audio is a separate matter, needed only for
+    a different voice (pitch shift or conversion), lip-syncing to speech the wearer is not actually
+    performing, or amplitude-reactive effects.</p>
+  </details>
 </section>
 </div>
 <div class="panel" id="panel-qr" hidden>
