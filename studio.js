@@ -160,6 +160,24 @@ $("dl").addEventListener("click", () => mindURL && dlBlob(mindURL, "targets.mind
 // gets normal camera permission, and preview.html reports why it failed instead of going blank.
 // Only the <a-scene> fragment is passed: preview.html loads the runtime itself, while the export
 // builders keep producing complete documents.
+// The scene references blob: URLs minted in THIS document. A same-origin tab is supposed to be
+// able to fetch them, but it is exactly the kind of thing iOS restricts, so the preview tab can
+// ask us for the bytes instead. We only ever answer for URLs we minted ourselves.
+window.addEventListener("message", async (ev) => {
+  if (ev.origin !== location.origin) return;
+  const d = ev.data;
+  if (!d || d.type !== "vertice_ar_blob_req" || typeof d.url !== "string") return;
+  const reply = (body) => ev.source && ev.source.postMessage(
+    Object.assign({ type: "vertice_ar_blob_res", url: d.url }, body), location.origin);
+  const mine = new Set([mindURL].concat(
+    Object.keys(window.__assets || {}).map((k) => window.__assets[k].url)).filter(Boolean));
+  if (!mine.has(d.url)) return reply({ error: "not one of ours" });
+  try {
+    const b = await (await fetch(d.url)).blob();
+    reply({ buf: await b.arrayBuffer(), mime: b.type });
+  } catch (e) { reply({ error: String((e && e.message) || e) }); }
+});
+
 function openPreview(mode, doc) {
   const m = doc.match(/<a-scene[\s\S]*<\/a-scene>/);
   if (!m) return false;

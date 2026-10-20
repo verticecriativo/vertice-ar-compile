@@ -71,6 +71,36 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
     return fail("A library did not load", "Blocked or offline: <code>" + err.message + "</code>");
   }
 
+  // Resolve every blob: URL before building the scene. Direct fetch first; if the browser
+  // refuses a cross-tab blob (iOS does this), ask the studio tab for the bytes and re-mint
+  // the URL locally. Either way we know the asset is reachable before A-Frame sees it.
+  const blobs = Array.from(new Set(cfg.scene.match(/blob:[^"'\s)]+/g) || []));
+  if (blobs.length) {
+    t.textContent = "Loading the model…";
+    p.textContent = blobs.length === 1 ? "Fetching 1 asset." : "Fetching " + blobs.length + " assets.";
+    const ask = (u) => new Promise((res) => {
+      if (!window.opener) return res(null);
+      const to = setTimeout(() => { window.removeEventListener("message", on); res(null); }, 15000);
+      function on(ev) {
+        if (ev.origin !== location.origin) return;
+        const d = ev.data;
+        if (!d || d.type !== "vertice_ar_blob_res" || d.url !== u) return;
+        clearTimeout(to); window.removeEventListener("message", on);
+        res(d.buf ? URL.createObjectURL(new Blob([d.buf], { type: d.mime || "" })) : null);
+      }
+      window.addEventListener("message", on);
+      window.opener.postMessage({ type: "vertice_ar_blob_req", url: u }, location.origin);
+    });
+    for (const u of blobs) {
+      let local = null;
+      try { const r = await fetch(u); if (r.ok) local = URL.createObjectURL(await r.blob()); } catch (e) {}
+      if (!local) local = await ask(u);
+      if (!local) return fail("An asset did not transfer",
+        "The studio tab could not hand over one of the uploads. Keep that tab open and press preview again.");
+      cfg.scene = cfg.scene.split(u).join(local);
+    }
+  }
+
   document.getElementById("scene").innerHTML = cfg.scene;
   const sc = document.querySelector("a-scene");
   if (!sc) return fail("Scene did not build", "The generated markup produced no &lt;a-scene&gt;.");
