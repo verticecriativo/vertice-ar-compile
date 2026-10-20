@@ -36,7 +36,7 @@
 <div id="build"></div>
 <div id="msg"><div><h1 id="t">Starting…</h1><p id="p">Asking for the camera.</p></div></div>
 <script>
-const BUILD = "2026-10-20h";
+const BUILD = "2026-10-20m";
 const t = document.getElementById("t"), p = document.getElementById("p"), msg = document.getElementById("msg");
 const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; };
 
@@ -151,8 +151,10 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
   // loaders A-Frame does not install. Say so rather than showing an empty scene.
   sc.addEventListener("model-error", (ev) => {
     fail("The model did not load",
-      "A-Frame could not decode it. KTX2-compressed or meshopt-packed GLBs need extra loaders; "
-      + "re-export as a plain glTF/GLB. <code>" + ((ev.detail && ev.detail.src) || "") + "</code>");
+      "A-Frame could not decode it. Usual causes: a KTX2-compressed or meshopt-packed GLB, which "
+      + "needs loaders A-Frame does not install, or a file that is not valid glTF. The studio "
+      + "reports both when you pick the file. <code>"
+      + ((ev.detail && ev.detail.src) || "").slice(0, 64) + "</code>");
   });
 
   let done = false;

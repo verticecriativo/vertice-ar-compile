@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20l";
+const BUILD = "2026-10-20m";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -87,7 +87,12 @@ function contentState(prefix) {
 window.__assets = {};
 
 function assetTag(c, id) {
-  if (c.kind === "glb" && c.url) return `<a-asset-item id="${id}" src="${c.url}"></a-asset-item>`;
+  // response-type is NOT optional here. A-Frame infers it from the FILE EXTENSION:
+  //   inferResponseType(src) -> name ends in ".glb" ? "arraybuffer" : "text"
+  // A blob: URL has no extension, so every picked .glb was being read as TEXT, which corrupts the
+  // binary and makes GLTFLoader fail with a bare model-error. Stating it explicitly is the fix,
+  // and it applies to image mode too — the bug was never specific to face tracking.
+  if (c.kind === "glb" && c.url) return `<a-asset-item id="${id}" src="${c.url}" response-type="arraybuffer"></a-asset-item>`;
   if (c.kind === "video" && c.url) return `<video id="${id}" src="${c.url}" preload="auto" loop muted playsinline crossorigin="anonymous"></video>`;
   if (c.kind === "image" && c.url) return `<img id="${id}" src="${c.url}" crossorigin="anonymous">`;
   return "";
