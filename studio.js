@@ -11,6 +11,9 @@ const $ = (id) => document.getElementById(id);
 const say = (el, msg, cls) => { const n = $(el); if (!n) return; n.textContent = msg; n.className = "status " + (cls || ""); };
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 const CLOSE = "<" + "/script>";
+// Stamped into the preview tab. The SCENE comes from here, so this is the build id that
+// matters when checking whether a phone is running current bytes. Bump it on every change.
+const BUILD = "2026-10-20f";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -195,7 +198,7 @@ window.addEventListener("message", async (ev) => {
 function openPreview(mode, doc) {
   const m = doc.match(/<a-scene[\s\S]*<\/a-scene>/);
   if (!m) return false;
-  try { sessionStorage.setItem("vertice_ar_preview", JSON.stringify({ mode, scene: m[0], libs: libsFor(mode) })); }
+  try { sessionStorage.setItem("vertice_ar_preview", JSON.stringify({ mode, scene: m[0], libs: libsFor(mode), build: BUILD })); }
   catch (e) { return false; }
   // Pages serves preview.html with max-age=600, and a stale preview is indistinguishable from
   // a broken one. The query string guarantees the tab fetches the current build.
@@ -280,7 +283,7 @@ function faceHTML() {
 <a-scene mindar-face="${trackOpts("f", true)}"
   embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-${asset ? `  <a-assets>\n    ${asset}\n  </a-assets>\n` : ""}  <a-camera active="false" position="0 0 0"></a-camera>
+${asset ? `  <a-assets>\n    ${asset}\n  </a-assets>\n` : ""}  <a-camera active="false" position="0 0 0" look-controls="enabled: false"></a-camera>
   <a-entity mindar-face-target="anchorIndex: ${parseInt($("fanchor").value, 10) || 0}">
     ${contentTag(c, id)}
   </a-entity>

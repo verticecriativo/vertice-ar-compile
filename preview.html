@@ -36,7 +36,7 @@
 <div id="build"></div>
 <div id="msg"><div><h1 id="t">Starting…</h1><p id="p">Asking for the camera.</p></div></div>
 <script>
-const BUILD = "2026-10-20e";
+const BUILD = "2026-10-20f";
 const t = document.getElementById("t"), p = document.getElementById("p"), msg = document.getElementById("msg");
 const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; };
 
@@ -127,7 +127,7 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
   // viewport and must not paint a background over the video.
   const mv = (cfg.libs.find((u) => u.includes("mind-ar@")) || "").split("mind-ar@")[1] || "?";
   document.getElementById("build").textContent =
-    cfg.mode + " · mind-ar " + mv.split("/")[0] + " · build " + BUILD;
+    cfg.mode + " · mind-ar " + mv.split("/")[0] + " · studio " + (cfg.build || "?") + " · pv " + BUILD;
 
   document.body.insertAdjacentHTML("beforeend", cfg.scene);
   const sc = document.querySelector("a-scene");
