@@ -259,6 +259,24 @@
     <div class="fld"><label>Rot Y</label><input id="fry" value="0" data-persist></div>
     <div class="fld"><label>Rot Z</label><input id="frz" value="0" data-persist></div>
   </div>
+  <div class="grid" id="fmorphrow">
+    <div class="fld" style="grid-column:1/-1">
+      <label class="chk"><input type="checkbox" id="fmorph" data-persist> Talk with the face (drive morph targets)</label>
+    </div>
+    <div class="fld"><label>Smoothing</label><input id="fsmooth" value="0.35" data-persist></div>
+    <div class="fld"><label>Gain</label><input id="fgain" value="1" data-persist></div>
+  </div>
+  <p class="hint" id="fmorphhint" style="margin-top:10px">MediaPipe returns 52 ARKit blendshapes every
+  frame — <span class="mono">jawOpen</span>, <span class="mono">mouthPucker</span>,
+  <span class="mono">mouthFunnel</span> and the rest. This maps them onto a <span class="mono">.glb</span>'s
+  morph targets, so the model mouths what you mouth. The same shape is spelled
+  <span class="mono">mouthSmileLeft</span>, <span class="mono">mouthSmile_L</span> or
+  <span class="mono">blendShape1.mouthSmile_L</span> depending on who exported it; all three are matched.
+  The preview reports how many matched, which is the quickest way to tell whether a model is usable.
+  <b>Baked facial animation is dropped</b> while this is on — an animation clip and live blendshapes
+  write to the same influences and the clip wins. Export plain glTF/GLB: KTX2-compressed or
+  meshopt-packed models need loaders A-Frame does not install and will not decode (three.js's own
+  <span class="mono">facecap.glb</span> is one of these).</p>
   <div class="status" id="f1"></div>
   <details>
     <summary>Tracking options</summary>

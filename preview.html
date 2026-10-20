@@ -36,7 +36,7 @@
 <div id="build"></div>
 <div id="msg"><div><h1 id="t">Starting…</h1><p id="p">Asking for the camera.</p></div></div>
 <script>
-const BUILD = "2026-10-20f";
+const BUILD = "2026-10-20h";
 const t = document.getElementById("t"), p = document.getElementById("p"), msg = document.getElementById("msg");
 const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; };
 
@@ -79,6 +79,9 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
     "The studio did not say which libraries to use. Reload the studio and press preview again.");
   try {
     for (const u of cfg.libs) await load(u);
+    // Our own morph-driving component, same directory. Cache-busted with the studio build so the
+    // preview can never run a stale copy of it either.
+    if (cfg.mode === "face") await load("face-morphs.js?v=" + encodeURIComponent(cfg.build || ""));
   } catch (err) {
     return fail("A library did not load", "Blocked or offline: <code>" + err.message + "</code>");
   }
@@ -132,6 +135,25 @@ const fail = (title, detail) => { t.textContent = title; p.innerHTML = detail; }
   document.body.insertAdjacentHTML("beforeend", cfg.scene);
   const sc = document.querySelector("a-scene");
   if (!sc) return fail("Scene did not build", "The generated markup produced no &lt;a-scene&gt;.");
+
+  // The report is the quickest answer to "will this model work?" — matched count and the names
+  // that found no target. Without it a mismatched model just sits still and says nothing.
+  sc.addEventListener("vertice-morphs-report", (ev) => {
+    const d = ev.detail || {};
+    const b = document.getElementById("build");
+    if (b) b.textContent += "  |  morphs " + d.matched + "/51 matched"
+      + (d.meshes ? " · " + d.meshes + " mesh" + (d.meshes > 1 ? "es" : "") : "")
+      + (d.missing && d.missing.length ? " · missing " + d.missing.length : "");
+    console.log("[vertice] morph report", d);
+  });
+
+  // A GLB that cannot be decoded is a common, silent failure — e.g. KTX2-compressed models need
+  // loaders A-Frame does not install. Say so rather than showing an empty scene.
+  sc.addEventListener("model-error", (ev) => {
+    fail("The model did not load",
+      "A-Frame could not decode it. KTX2-compressed or meshopt-packed GLBs need extra loaders; "
+      + "re-export as a plain glTF/GLB. <code>" + ((ev.detail && ev.detail.src) || "") + "</code>");
+  });
 
   let done = false;
   const clear = () => { if (!done) { done = true; msg.classList.add("hide"); } };

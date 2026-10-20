@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20g";
+const BUILD = "2026-10-20h";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -28,6 +28,18 @@ const LIB = {
   face: "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-face-aframe.prod.js",
 };
 const libsFor = (mode) => [LIB.aframe, LIB.extras, mode === "face" ? LIB.face : LIB.image];
+
+// face-morphs.js is OUR component, not a pinned CDN library. The export inlines its text so a
+// downloaded page has no dependency on this site; the preview tab loads the same file by URL.
+// One file, so the two can never disagree.
+window.__morphSrc = null;
+fetch("face-morphs.js").then((r) => r.ok ? r.text() : null).then((t) => { window.__morphSrc = t; })
+  .catch(() => { window.__morphSrc = null; });
+
+const morphOn = () => $("fmorph").checked && $("fkind").value === "glb";
+const morphAttr = () => `vertice-face-morphs="smoothing: ${
+  Number.isFinite(parseFloat($("fsmooth").value)) ? parseFloat($("fsmooth").value) : 0.35}; gain: ${
+  Number.isFinite(parseFloat($("fgain").value)) ? parseFloat($("fgain").value) : 1}"`;
 
 // Pages caches for 10 minutes, so "is this the current build?" has come up more than once.
 // Answer it on the page itself, not just in the preview tab.
@@ -80,10 +92,13 @@ function assetTag(c, id) {
   if (c.kind === "image" && c.url) return `<img id="${id}" src="${c.url}" crossorigin="anonymous">`;
   return "";
 }
-function contentTag(c, id) {
+function contentTag(c, id, extra) {
   const common = `position="${c.pos}" rotation="${c.rot}" scale="${c.scale} ${c.scale} ${c.scale}"`;
+  const x = extra ? " " + extra : "";
   switch (c.kind) {
-    case "glb":   return c.url ? `<a-gltf-model src="#${id}" ${common} animation-mixer></a-gltf-model>` : "";
+    // animation-mixer is dropped when morphs are driven live: a baked facial clip writes the same
+    // morphTargetInfluences every frame and would simply overwrite the blendshapes.
+    case "glb":   return c.url ? `<a-gltf-model src="#${id}" ${common}${x}${extra ? "" : " animation-mixer"}></a-gltf-model>` : "";
     case "video": return c.url ? `<a-video src="#${id}" width="${c.w}" height="${c.h}" ${common}></a-video>` : "";
     case "image": return c.url ? `<a-image src="#${id}" width="${c.w}" height="${c.h}" ${common}></a-image>` : "";
     case "plane": return `<a-plane width="${c.w}" height="${c.h}" color="${esc(c.color)}" ${common}></a-plane>`;
@@ -280,18 +295,24 @@ function faceHTML() {
   const c = contentState("f");
   const id = "f0";
   const asset = assetTag(c, id);
+  const morph = morphOn();
+  const inline = morph
+    ? (window.__morphSrc
+        ? `<script>\n${window.__morphSrc}${CLOSE}`
+        : `<script src="${location.origin}${location.pathname.replace(/[^/]*$/, "")}face-morphs.js">${CLOSE}`)
+    : "";
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="${LIB.aframe}">${CLOSE}
 <script src="${LIB.extras}">${CLOSE}
 <script src="${LIB.face}">${CLOSE}
-<style>body{margin:0;overflow:hidden}</style></head><body>
+${inline}<style>body{margin:0;overflow:hidden}</style></head><body>
 <a-scene mindar-face="${trackOpts("f", true)}"
   embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
 ${asset ? `  <a-assets>\n    ${asset}\n  </a-assets>\n` : ""}  <a-camera active="false" position="0 0 0" look-controls="enabled: false"></a-camera>
   <a-entity mindar-face-target="anchorIndex: ${parseInt($("fanchor").value, 10) || 0}">
-    ${contentTag(c, id)}
+    ${contentTag(c, id, morph ? morphAttr() : "")}
   </a-entity>
 </a-scene></body></html>`;
 }
@@ -322,6 +343,12 @@ document.querySelectorAll("button.anchor").forEach((b) =>
     $(pfx + "textrow").style.display = k === "text" ? "" : "none";
     $(pfx + "colorrow").style.display = ["plane", "box", "text"].includes(k) ? "" : "none";
     $(pfx + "whrow").style.display = k === "glb" ? "none" : "";
+    // Morph targets live in the model, so the control only means anything for a .glb.
+    if (pfx === "f") {
+      const show = k === "glb" ? "" : "none";
+      $("fmorphrow").style.display = show;
+      $("fmorphhint").style.display = show;
+    }
     if (pfx === "f") $("frun").disabled = needsFile(k) && !window.__assets.f;
     if (pfx === "f") $("fgen").disabled = needsFile(k) && !window.__assets.f;
   };
