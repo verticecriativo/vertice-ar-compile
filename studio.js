@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20h";
+const BUILD = "2026-10-20i";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -334,6 +334,36 @@ $("fgen").addEventListener("click", () => {
 document.querySelectorAll("button.anchor").forEach((b) =>
   b.addEventListener("click", () => { $("fanchor").value = b.dataset.i; saveSettings(); }));
 
+// Vet a .glb the moment it is picked, from the file alone — no camera, no face, nothing uploaded.
+// "Where do I find a model with ARKit morph targets" is only answerable if you can tell, in one
+// step, whether a candidate actually has them and whether A-Frame can even decode it.
+function inspectModel(file) {
+  const api = window.VerticeFaceMorphs;
+  if (!api) return;
+  file.arrayBuffer().then((buf) => {
+    let r;
+    try { r = api.inspectGLB(buf); }
+    catch (e) { return say("fmorphcheck", "Could not read this .glb — " + e.message, "err"); }
+
+    if (r.blocking.length) {
+      return say("fmorphcheck", "⚠ " + r.morphTargets + " morph targets, but A-Frame cannot decode this file: "
+        + r.blocking.join("; ") + ". Re-export as plain glTF/GLB.", "err");
+    }
+    if (!r.morphTargets) {
+      return say("fmorphcheck", "No morph targets in this model — nothing to drive. "
+        + "It will still track as a rigid object.", "err");
+    }
+    if (!r.matchedDrivable) {
+      return say("fmorphcheck", r.morphTargets + " morph targets, but none match the ARKit names"
+        + " (found: " + r.names.slice(0, 4).join(", ") + "…). Rename them to the ARKit set.", "err");
+    }
+    say("fmorphcheck",
+      `${r.morphTargets} morph targets · ${r.matchedDrivable}/51 ARKit matched · `
+      + `jaw+mouth ${r.mouthOk}/${r.mouthTotal} · ${r.dialect} naming`,
+      r.mouthOk >= 10 ? "ok" : "");
+  }).catch(() => {});
+}
+
 // ---------- content pickers (shared wiring) ----------
 ["i", "f"].forEach((pfx) => {
   const kind = $(pfx + "kind"), file = $(pfx + "file");
@@ -362,6 +392,7 @@ document.querySelectorAll("button.anchor").forEach((b) =>
       `${f.name} — ${(f.size / 1024 / 1024).toFixed(2)} MB` + (big ? "  ⚠ over 3 MB is slow on venue Wi-Fi" : ""),
       big ? "err" : "ok");
     sync();
+    if (pfx === "f" && kind.value === "glb") inspectModel(f);
   });
   sync();
 });

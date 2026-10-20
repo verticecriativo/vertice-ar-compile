@@ -13,8 +13,6 @@
 //
 // Without that, a perfectly good model simply sits still and nothing says why — hence the report.
 (function () {
-  if (typeof AFRAME === "undefined") return;
-
   const ARKIT = ["_neutral",
     "browDownLeft","browDownRight","browInnerUp","browOuterUpLeft","browOuterUpRight",
     "cheekPuff","cheekSquintLeft","cheekSquintRight","eyeBlinkLeft","eyeBlinkRight",
@@ -35,6 +33,61 @@
     n = n.replace(/[._]([LR])$/i, (_m, d) => (d.toLowerCase() === "l" ? "Left" : "Right"));
     return n.replace(/[._\s]/g, "").toLowerCase();
   }
+
+  // Extensions plain A-Frame cannot decode: it installs none of these loaders, so the model loads
+  // as nothing and the scene looks empty. Worth catching before anyone builds on it.
+  const BLOCKING = {
+    KHR_texture_basisu: "KTX2 textures (needs KTX2Loader)",
+    EXT_meshopt_compression: "meshopt packing (needs MeshoptDecoder)",
+    KHR_draco_mesh_compression: "Draco mesh compression (needs DRACOLoader)",
+  };
+
+  // Read a .glb's JSON chunk directly — no three.js, no network, nothing uploaded. Enough to answer
+  // "will this model work?" from the file alone, without a camera or a face.
+  function inspectGLB(buf) {
+    const dv = new DataView(buf);
+    if (dv.byteLength < 20 || dv.getUint32(0, true) !== 0x46546c67) throw new Error("not a .glb");
+    let off = 12, json = null;
+    while (off + 8 <= dv.byteLength) {
+      const len = dv.getUint32(off, true), type = dv.getUint32(off + 4, true);
+      if (type === 0x4e4f534a) {
+        json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, off + 8, len)));
+        break;
+      }
+      off += 8 + len + ((4 - (len % 4)) % 4);
+    }
+    if (!json) throw new Error("no JSON chunk");
+
+    let names = [];
+    (json.meshes || []).forEach((m) => {
+      (m.primitives || []).forEach((p) => {
+        const tn = (p.extras && p.extras.targetNames) || (m.extras && m.extras.targetNames);
+        if (tn && tn.length > names.length) names = tn;
+      });
+    });
+    const have = new Set(names.map(canon));
+    const matched = ARKIT.filter((n) => have.has(canon(n)));
+    const mouth = ARKIT.filter((n) => /^(jaw|mouth)/.test(n));
+    const blocking = [].concat(json.extensionsRequired || [], json.extensionsUsed || [])
+      .filter((e, i, a) => BLOCKING[e] && a.indexOf(e) === i);
+    return {
+      meshes: (json.meshes || []).length,
+      morphTargets: names.length,
+      names: names,
+      matched: matched.length,
+      // _neutral is never authored into a model, so 51 is the real ceiling.
+      matchedDrivable: matched.filter((n) => n !== "_neutral").length,
+      mouthOk: mouth.filter((n) => have.has(canon(n))).length,
+      mouthTotal: mouth.length,
+      dialect: names.some((n) => /[._][LR]$/.test(n)) ? "_L/_R"
+             : names.some((n) => /(Left|Right)$/.test(n)) ? "Left/Right" : "—",
+      blocking: blocking.map((e) => BLOCKING[e]),
+    };
+  }
+
+  window.VerticeFaceMorphs = { ARKIT: ARKIT, canon: canon, inspectGLB: inspectGLB };
+
+  if (typeof AFRAME === "undefined") return;
 
   AFRAME.registerComponent("vertice-face-morphs", {
     schema: {
