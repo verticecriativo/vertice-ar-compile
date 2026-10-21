@@ -3,667 +3,288 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vértice — AR Studio</title>
-<meta name="robots" content="noindex">
-<meta name="theme-color" content="#17191F">
+<title>Vértice AR Studio — web AR, built in your browser</title>
+<meta name="description" content="Free web AR studio. Image tracking, face tracking, talking faces and QR codes, built in your browser. Nothing is uploaded: you export a folder and host it wherever you like.">
+<meta property="og:title" content="Vértice AR Studio">
+<meta property="og:description" content="Web AR, built in your browser. Your files, your hosting, your QR. Free, no account, nothing uploaded.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0C0D11">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpolygon points='40,40 0,40 20,20' fill='%23191b21'/%3E%3Cpolygon points='40,0 40,40 20,20' fill='%2322242b'/%3E%3Cpolygon points='0,0 40,0 20,20' fill='%233a3e48'/%3E%3Cpolygon points='0,40 0,0 20,20' fill='%232c2f37'/%3E%3Cpolygon points='0,0 19.4,19.2 19.3,19.4 0,0.1' fill='%23e0a24c'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap">
-<!-- COMPILER, pinned to 1.1.5 — the build upstream's own tool uses, so targets behave identically.
-     Runs in this tab: no image, model or compiled target is uploaded anywhere. -->
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.5/dist/mindar-image.prod.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<!-- The rig tab runs its own three.js: it needs GLTFExporter, which A-Frame does not ship, and
-     keeping it separate means the viewer cannot perturb the AR runtime. The addons import a bare
-     "three" specifier, hence the import map. -->
-<script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
-</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@1,6..72,400&display=swap">
 <style>
-  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
-  :root { color-scheme:dark; }
-  body { background:#17191F; color:#F6F6F8; font-family:'Space Grotesk',-apple-system,sans-serif;
-         -webkit-font-smoothing:antialiased; padding:32px 20px 72px; }
-  .wrap { max-width:68rem; margin:0 auto; }
-  header { display:flex; align-items:center; gap:16px; padding-bottom:22px; border-bottom:1px solid #2E323D; }
-  header svg { width:40px; height:40px; }
-  h1 { font-size:1.35rem; font-weight:600; letter-spacing:-.02em; }
-  .sub { font-size:.8rem; color:#5C616D; margin-top:2px; }
-  .mono { font-family:'JetBrains Mono',ui-monospace,monospace; } .dim { color:#5C616D; }
-  .cols { display:flex; gap:28px; align-items:flex-start; margin-top:24px; }
-  nav { width:190px; flex:0 0 190px; position:sticky; top:24px; }
-  nav button { display:block; width:100%; text-align:left; background:transparent; color:#AEB4BF;
-    border:1px solid transparent; padding:10px 12px; border-radius:8px; margin-bottom:4px;
-    font-size:.88rem; font-weight:500; cursor:pointer; font-family:inherit; }
-  nav button:hover { color:#F6F6F8; border-color:#2E323D; }
-  nav button[aria-current="true"] { background:#1E212A; border-color:#3A3E48; color:#F6F6F8; }
-  nav .navnote { font-size:.7rem; line-height:1.6; color:#5C616D; padding:12px; margin-top:10px; border-top:1px solid #2E323D; }
-  .panel { flex:1; min-width:0; } .panel[hidden] { display:none; }
-  section { margin-bottom:20px; padding:22px; background:#1E212A; border:1px solid #2E323D; border-radius:12px; }
-  .step { font-family:'JetBrains Mono',monospace; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:#E0A24C; }
-  h2 { font-size:1.05rem; font-weight:600; margin:8px 0 4px; letter-spacing:-.01em; }
-  p.hint { font-size:.85rem; line-height:1.6; color:#AEB4BF; }
-  .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:14px; }
-  button,.filebtn { font-family:inherit; font-size:.85rem; font-weight:500; padding:9px 16px;
-    border-radius:8px; border:1px solid transparent; cursor:pointer; background:#A15E1E; color:#fff; }
-  button.ghost,.filebtn { background:transparent; border-color:#3A3E48; color:#F6F6F8; }
-  button.sm { padding:5px 10px; font-size:.75rem; }
-  button:disabled { opacity:.4; cursor:not-allowed; }
-  input[type=file] { display:none; } label.filebtn { display:inline-block; }
-  .bar { height:6px; background:#2E323D; border-radius:3px; overflow:hidden; margin-top:14px; display:none; }
-  .bar > i { display:block; height:100%; width:0; background:#E0A24C; transition:width .2s; }
-  .status { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:#AEB4BF; margin-top:10px; min-height:1.2em; line-height:1.5; }
-  .ok { color:#6FBF95; } .err { color:#F87171; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:12px; margin-top:14px; }
-  .fld label { display:block; font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:#5C616D; margin-bottom:5px; }
-  .fld input,.fld select { width:100%; padding:8px 10px; background:#17191F; border:1px solid #2E323D;
-    border-radius:7px; color:#F6F6F8; font-family:'JetBrains Mono',monospace; font-size:.8rem; }
-  .chk { font-size:.8rem; color:#AEB4BF; display:flex; gap:7px; align-items:center; }
-  .chk input { width:auto; }
-  details { margin-top:16px; border-top:1px solid #2E323D; padding-top:14px; }
-  summary { cursor:pointer; font-size:.82rem; color:#E0A24C; font-weight:500; }
-  .titem { display:flex; gap:12px; align-items:center; padding:10px; background:#17191F;
-    border:1px solid #2E323D; border-radius:8px; margin-top:8px; font-size:.82rem; }
-  .titem img { width:48px; height:48px; object-fit:cover; border-radius:5px; flex:0 0 48px; }
-  .titem div { flex:1; line-height:1.5; }
-  pre { margin-top:14px; padding:14px; background:#13161C; border:1px solid #2E323D; border-radius:8px;
-    overflow:auto; font-family:'JetBrains Mono',monospace; font-size:.72rem; line-height:1.55;
-    color:#AEB4BF; max-height:280px; display:none; white-space:pre; }
-  button.swatch { width:26px; height:26px; padding:0; border-radius:50%; border:2px solid #2E323D; }
-  button.swatch:hover { border-color:#F6F6F8; }
-  #qprev { display:none; margin-top:16px; padding:18px; background:#F6F6F8; border-radius:10px;
-           max-width:320px; }
-  #qprev svg { width:100%; height:auto; display:block; }
-  footer { margin-top:28px; font-size:.75rem; color:#5C616D; line-height:1.7; }
-  a { color:#E0A24C; text-decoration:none; } a:hover { text-decoration:underline; }
-  #rigview, #iview { width:100%; margin-top:14px; border:1px solid #2E323D; border-radius:10px;
-    overflow:hidden; background:#13161C; }
-  #rigview { height:420px; } #iview { height:340px; }
-  #rigview canvas, #iview canvas { display:block; width:100%; height:100%; }
-  input[type=range] { width:100%; accent-color:#E0A24C; }
-  details.help { margin-top:10px; border-top:1px solid #2E323D; padding-top:12px; }
-  details.help > summary { color:#F6F6F8; font-weight:500; }
-  details.help[open] > summary { color:#E0A24C; margin-bottom:8px; }
-  details.help p, details.help li { font-size:.84rem; line-height:1.65; color:#AEB4BF; }
-  details.help p { margin-top:8px; }
-  details.help ol { margin:6px 0 0 1.1rem; } details.help li { margin-bottom:5px; }
-  details.help b { color:#F6F6F8; font-weight:500; }
-  details.help table { border-collapse:collapse; margin-top:8px; width:100%; }
-  details.help td { font-size:.84rem; line-height:1.6; color:#AEB4BF; padding:4px 10px 4px 0;
-    border-bottom:1px solid #2E323D; vertical-align:top; }
-  details.help td:first-child { color:#E0A24C; width:3.2rem; white-space:nowrap; }
-  pre.snippet { display:block; margin-top:8px; padding:10px 12px; background:#13161C;
-    border:1px solid #2E323D; border-radius:7px; font-family:'JetBrains Mono',monospace;
-    font-size:.72rem; line-height:1.6; color:#AEB4BF; overflow-x:auto; white-space:pre; max-height:none; }
-
-  /* ---------- PHONE ----------
-     The desktop layout puts a fixed 190px nav beside the panel. At 390px that left the panel
-     132px wide and every step collapsed into a column one or two words across. On a phone the
-     nav becomes a tab strip above the panel instead, and the panel gets the full width. */
-  @media (max-width: 760px) {
-    body { padding:18px 14px 52px; }
-    header { gap:12px; padding-bottom:16px; }
-    header svg { width:32px; height:32px; flex:0 0 32px; }
-    h1 { font-size:1.1rem; }
-    .sub { font-size:.75rem; line-height:1.5; }
-
-    .cols { flex-direction:column; gap:14px; margin-top:16px; }
-    nav { width:100%; flex:none; position:static; display:flex; flex-wrap:wrap; gap:6px; }
-    nav button { width:auto; flex:1 1 auto; min-width:0; text-align:center; margin-bottom:0;
-      border-color:#2E323D; padding:10px 10px; font-size:.82rem; }
-    /* The note keeps its own full-width row rather than being dropped — "files do not persist"
-       is the one thing on this page a phone user most needs to know. */
-    nav .navnote { flex:1 0 100%; margin-top:4px; padding:10px 2px 0; font-size:.72rem; }
-
-    section { padding:16px; margin-bottom:14px; }
-    h2 { font-size:1rem; }
-    p.hint { font-size:.82rem; }
-    .row { gap:8px; margin-top:12px; }
-    button, .filebtn { padding:10px 14px; }
-    /* Two columns, not three: at 362px a third column clips select text like "H \u00b7 30%"
-       and wraps labels such as "ERROR CORRECTION" onto two lines. */
-    .grid { grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; }
-    /* 16px is the threshold below which iOS Safari zooms the whole page on focus — which is
-       itself a large part of why the form felt cramped. */
-    .fld input, .fld select { font-size:16px; padding:9px 10px; }
-    .titem { font-size:.78rem; gap:10px; }
-    #rigview { height:300px; } #iview { height:250px; }
-    /* Nothing may establish a min-content width wider than the screen: in a column flex layout that
-       widens the whole panel and gives the document a horizontal scroll. The snippets wrap instead
-       of scrolling sideways, which reads better on a phone regardless. */
-    .panel, .panel section, details.help { min-width:0; max-width:100%; }
-    pre, pre.snippet { max-width:100%; }
-    pre.snippet { white-space:pre-wrap; overflow-wrap:anywhere; }
-    details.help td:first-child { width:2.6rem; }
-    #qprev { max-width:100%; padding:14px; }
-    pre { font-size:.68rem; max-height:220px; }
-    footer { margin-top:20px; font-size:.72rem; }
+  :root {
+    --ink:#17191F; --deep:#0C0D11; --panel:#1E212A; --line:#2E323D; --line2:#3A3E48;
+    --slate:#5C616D; --mute:#AEB4BF; --paper:#F6F6F8; --brass:#E0A24C; --brass-solid:#A15E1E;
+    color-scheme:dark;
   }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
+  @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+  body { background:var(--deep); color:var(--paper); font-family:'Space Grotesk',-apple-system,sans-serif;
+         -webkit-font-smoothing:antialiased; line-height:1.55; overflow-x:hidden; }
+  a { color:inherit; }
+  .wrap { max-width:68rem; margin:0 auto; padding:0 24px; }
+  .mono { font-family:'JetBrains Mono',ui-monospace,monospace; }
+  .eyebrow { font-family:'JetBrains Mono',monospace; font-size:.72rem; letter-spacing:.18em;
+             text-transform:uppercase; color:var(--brass); }
 
-  /* Small phones: let the three tabs stack rather than squeeze to two characters. */
-  @media (max-width: 380px) {
-    nav button { flex:1 1 100%; text-align:left; }
+  /* top bar */
+  .top { position:sticky; top:0; z-index:5; background:rgba(12,13,17,.86); backdrop-filter:blur(10px);
+         -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+  .top .wrap { display:flex; align-items:center; gap:14px; height:64px; }
+  .brand { display:flex; align-items:center; gap:12px; text-decoration:none; font-weight:600; letter-spacing:-.01em; }
+  .brand svg { width:30px; height:30px; flex:none; }
+  .brand small { display:block; font-weight:400; font-size:.7rem; color:var(--slate); letter-spacing:0; }
+  .links { margin-left:auto; display:flex; gap:22px; align-items:center; font-size:.88rem; }
+  .links a { text-decoration:none; color:var(--mute); } .links a:hover { color:var(--paper); }
+  .btn { display:inline-block; text-decoration:none; font-weight:500; font-size:.9rem; padding:11px 18px;
+         border-radius:9px; border:1px solid transparent; white-space:nowrap; }
+  .btn.primary { background:var(--brass-solid); color:#fff; } .btn.primary:hover { background:#B56A23; }
+  .btn.ghost { border-color:var(--line2); color:var(--paper); } .btn.ghost:hover { border-color:var(--slate); }
+  .links .btn { padding:8px 14px; color:var(--paper); }
+
+  /* hero */
+  .hero { padding:96px 0 72px; position:relative; }
+  .hero::after { content:""; position:absolute; right:-6%; top:40px; width:min(46vw,520px); aspect-ratio:1;
+    background:conic-gradient(from 45deg,#22242b 0 25%,#191b21 0 50%,#2c2f37 0 75%,#3a3e48 0);
+    clip-path:polygon(0 0,100% 0,100% 100%,0 100%); opacity:.16; transform:rotate(45deg) scale(.7);
+    border-radius:6px; pointer-events:none; }
+  h1 { font-size:clamp(2.3rem,6vw,4.2rem); line-height:1.04; font-weight:600; letter-spacing:-.035em;
+       margin:18px 0 0; max-width:15ch; position:relative; z-index:1; }
+  .tag { font-family:'Newsreader',Georgia,serif; font-style:italic; font-size:clamp(1.3rem,2.6vw,1.75rem);
+         color:var(--brass); margin-top:14px; position:relative; z-index:1; }
+  .lede { color:var(--mute); font-size:1.08rem; max-width:40rem; margin-top:22px; position:relative; z-index:1; }
+  .cta { display:flex; gap:12px; flex-wrap:wrap; margin-top:32px; position:relative; z-index:1; }
+  .pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:36px; position:relative; z-index:1; }
+  .pills span { font-family:'JetBrains Mono',monospace; font-size:.72rem; color:var(--mute);
+                border:1px solid var(--line); border-radius:999px; padding:6px 12px; }
+
+  section.block { padding:72px 0; border-top:1px solid var(--line); }
+  h2 { font-size:clamp(1.6rem,3.4vw,2.3rem); font-weight:600; letter-spacing:-.03em; line-height:1.12; margin-top:12px; max-width:24ch; }
+  .intro { color:var(--mute); max-width:40rem; margin-top:14px; }
+
+  /* tools */
+  .tools { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:36px; }
+  .tool { display:flex; flex-direction:column; text-decoration:none; background:var(--panel);
+          border:1px solid var(--line); border-radius:14px; padding:26px; transition:border-color .15s, transform .15s; }
+  .tool:hover { border-color:var(--brass); transform:translateY(-2px); }
+  @media (prefers-reduced-motion:reduce) { .tool { transition:none; } .tool:hover { transform:none; } }
+  .tool .n { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--brass); }
+  .tool h3 { font-size:1.25rem; font-weight:600; letter-spacing:-.015em; margin:10px 0 8px; }
+  .tool p { color:var(--mute); font-size:.93rem; }
+  .tool ul { list-style:none; margin-top:14px; display:flex; flex-wrap:wrap; gap:6px; }
+  .tool li { font-family:'JetBrains Mono',monospace; font-size:.68rem; color:var(--slate);
+             border:1px solid var(--line); border-radius:6px; padding:3px 8px; }
+  .tool .go { margin-top:auto; padding-top:20px; font-weight:500; font-size:.9rem; color:var(--paper); }
+  .tool:hover .go { color:var(--brass); }
+
+  /* steps */
+  .steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-top:36px; counter-reset:s; }
+  .step { border-top:2px solid var(--line2); padding-top:18px; }
+  .step b { display:block; font-family:'JetBrains Mono',monospace; font-weight:500; font-size:.75rem; color:var(--brass); }
+  .step h3 { font-size:1.05rem; font-weight:600; margin:8px 0 6px; }
+  .step p { color:var(--mute); font-size:.9rem; }
+
+  /* tool-not-platform */
+  .split { display:grid; grid-template-columns:1.1fr 1fr; gap:40px; align-items:start; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:26px; }
+  .card h3 { font-size:1rem; font-weight:600; margin-bottom:12px; }
+  .card dl { display:grid; grid-template-columns:auto 1fr; gap:10px 16px; font-size:.9rem; }
+  .card dt { font-family:'JetBrains Mono',monospace; font-size:.75rem; color:var(--slate); padding-top:2px; }
+  .card dd { color:var(--mute); }
+  .note { color:var(--mute); margin-top:16px; font-size:.95rem; }
+  .note a { color:var(--brass); }
+
+  /* credits */
+  .credits { width:100%; border-collapse:collapse; margin-top:32px; font-size:.88rem; }
+  .credits th { text-align:left; font-family:'JetBrains Mono',monospace; font-weight:500; font-size:.7rem;
+                letter-spacing:.12em; text-transform:uppercase; color:var(--slate); padding:0 12px 10px 0;
+                border-bottom:1px solid var(--line); }
+  .credits td { padding:12px 12px 12px 0; border-bottom:1px solid var(--line); vertical-align:top; color:var(--mute); }
+  .credits td:first-child { color:var(--paper); font-weight:500; white-space:nowrap; }
+  .credits td:first-child a { text-decoration:none; border-bottom:1px solid var(--line2); }
+  .credits td:first-child a:hover { border-color:var(--brass); }
+  .credits .lic { font-family:'JetBrains Mono',monospace; font-size:.75rem; white-space:nowrap; color:var(--brass); }
+  .fine { color:var(--slate); font-size:.8rem; margin-top:18px; }
+
+  footer { border-top:1px solid var(--line); padding:36px 0 48px; color:var(--slate); font-size:.82rem; }
+  footer .wrap { display:flex; flex-wrap:wrap; gap:14px 28px; align-items:center; }
+  footer a { color:var(--mute); text-decoration:none; } footer a:hover { color:var(--paper); }
+  footer .right { margin-left:auto; display:flex; gap:20px; }
+
+  @media (max-width:860px) {
+    .steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .split { grid-template-columns:1fr; }
+  }
+  @media (max-width:640px) {
+    .wrap { padding:0 16px; }
+    .links a:not(.btn) { display:none; }
+    .hero { padding:56px 0 48px; } .hero::after { display:none; }
+    .tools, .steps { grid-template-columns:1fr; }
+    section.block { padding:52px 0; }
+    .credits thead { display:none; }
+    .credits, .credits tbody, .credits tr, .credits td { display:block; width:100%; }
+    .credits tr { border-bottom:1px solid var(--line); padding:12px 0; }
+    .credits td { border:0; padding:2px 0; }
+    footer .right { margin-left:0; }
   }
 </style>
 </head>
 <body>
-<div class="wrap">
-<header>
-  <svg viewBox="0 0 40 40" aria-label="Vértice" role="img">
-    <polygon points="40,39.94 0,39.94 20,19.95" fill="#191b21"/>
-    <polygon points="39.97,0 40,39.94 20,19.95" fill="#22242b"/>
-    <polygon points="0.05,0 39.97,0 20,19.95" fill="#3a3e48"/>
-    <polygon points="0.03,39.94 0.05,0 20,19.95" fill="#2c2f37"/>
-    <polygon points="0.09,0 19.4,19.24 19.28,19.37 0.05,0.07" fill="#e0a24c"/>
-    <circle cx="19.97" cy="19.92" r="0.9" fill="#e0a24c"/>
-  </svg>
-  <div><h1>AR Studio</h1>
-  <div class="sub">Compile targets, place content, preview, export. Everything runs in this tab — nothing is uploaded.</div></div>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="Vértice AR Studio home">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <polygon points="40,39.94 0,39.94 20,19.95" fill="#191b21"/>
+        <polygon points="39.97,0 40,39.94 20,19.95" fill="#22242b"/>
+        <polygon points="0.05,0 39.97,0 20,19.95" fill="#3a3e48"/>
+        <polygon points="0.03,39.94 0.05,0 20,19.95" fill="#2c2f37"/>
+        <polygon points="0.09,0 19.4,19.24 19.28,19.37 0.05,0.07" fill="#e0a24c"/>
+        <circle cx="19.97" cy="19.92" r="0.9" fill="#e0a24c"/>
+      </svg>
+      <span>AR Studio<small>by Vértice Criativo</small></span>
+    </a>
+    <nav class="links" aria-label="Sections">
+      <a href="#tools">Tools</a>
+      <a href="#how">How it works</a>
+      <a href="#credits">Credits</a>
+      <a class="btn ghost" href="studio.html">Open the studio</a>
+    </nav>
+  </div>
 </header>
 
-<div class="cols">
-<nav>
-  <button id="nav-image" aria-current="true">Image tracking</button>
-  <button id="nav-face">Face tracking</button>
-  <button id="nav-rig">Face rig</button>
-  <button id="nav-qr">QR code</button>
-  <div class="navnote">Settings persist in this browser. Files do not — re-pick them after a reload.</div>
-</nav>
-<div class="panel" id="panel-image">
-<section>
-  <div class="step">Step 1</div>
-  <h2>Image targets</h2>
-  <p class="hint">Add one or more. Flat, matte and feature-rich tracks best — many distinct corners,
-  not large flat areas. ~1000&nbsp;px on the long edge is plenty. Several targets compile into a
-  single <span class="mono">.mind</span>, each addressed by its index.</p>
-  <div class="row">
-    <label class="filebtn">Add image(s)<input type="file" id="img" accept="image/*" multiple></label>
-    <button id="compile" disabled>Compile</button>
-    <button id="dl" class="ghost" disabled>Download .mind</button>
+<main>
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Vértice AR Studio · free · in your browser</div>
+    <h1>Web AR, built in your browser.</h1>
+    <p class="tag">Your files. Your hosting. Your QR.</p>
+    <p class="lede">Make things appear on posters, products and faces, give a 3D head a mouth that talks, and print the QR code that opens it, all in one tab. Nothing is uploaded. You export a folder that works as-is and host it wherever you like.</p>
+    <div class="cta">
+      <a class="btn primary" href="studio.html">Open the studio</a>
+      <a class="btn ghost" href="#how">See how it works</a>
+    </div>
+    <div class="pills" aria-label="At a glance">
+      <span>No account</span><span>Nothing uploaded</span><span>No watermark</span><span>No view limits</span><span>MIT licensed</span>
+    </div>
   </div>
-  <div id="tlist"></div>
-  <div class="bar" id="bar"><i id="barfill"></i></div>
-  <div class="status" id="s1"></div>
 </section>
 
-<section>
-  <div class="step">Step 2</div>
-  <h2>Content</h2>
-  <p class="hint">What appears on target #0. The target is one unit wide, so <span class="mono">scale 1</span> is roughly target-sized and <span class="mono">0 0 0</span> is its centre.</p>
-  <div class="grid">
-    <div class="fld"><label>Type</label><select id="ikind" data-persist>
-      <option value="glb">3D model (.glb)</option>
-      <option value="video">Video</option>
-      <option value="image">Image</option>
-      <option value="plane">Plane</option>
-      <option value="box">Box</option>
-      <option value="text">Text</option>
-    </select></div>
-  </div>
-  <div class="row" id="ifilerow">
-    <label class="filebtn">Choose file<input type="file" id="ifile"></label>
-  </div>
-  <div class="grid" id="itextrow">
-    <div class="fld" style="grid-column:1/-1"><label>Text</label><input id="itext" value="Vértice" data-persist></div>
-  </div>
-  <div class="grid" id="icolorrow">
-    <div class="fld"><label>Colour</label><input id="icolor" value="#E0A24C" data-persist></div>
-  </div>
-  <div class="grid" id="iwhrow">
-    <div class="fld"><label>Width</label><input id="iw" value="1" data-persist></div>
-    <div class="fld"><label>Height</label><input id="ih" value="0.56" data-persist></div>
-  </div>
-  <div class="grid">
-    <div class="fld"><label>Scale</label><input id="isc" value="0.5" data-persist></div>
-    <div class="fld"><label>Pos X</label><input id="ipx" value="0" data-persist></div>
-    <div class="fld"><label>Pos Y</label><input id="ipy" value="0" data-persist></div>
-    <div class="fld"><label>Pos Z</label><input id="ipz" value="0" data-persist></div>
-    <div class="fld"><label>Rot X</label><input id="irx" value="0" data-persist></div>
-    <div class="fld"><label>Rot Y</label><input id="iry" value="0" data-persist></div>
-    <div class="fld"><label>Rot Z</label><input id="irz" value="0" data-persist></div>
-  </div>
-  <div id="iview"></div>
-  <div class="row">
-    <button class="ghost sm" id="ifront">Front view</button>
-    <label class="chk"><input type="checkbox" id="igridtoggle" checked> Grid</label>
-  </div>
-  <p class="hint">The plane is your target at the scale the tracker uses: <b>one unit wide</b>, with
-  its height from the image aspect. <span class="mono">0 0 0</span> is the target's centre and
-  <b>+Z</b> comes towards the viewer, so these are the same numbers the preview and the bundle use —
-  place it here and it lands there. Drag to orbit.</p>
-  <div class="status" id="i5"></div>
-  <div class="status" id="s2"></div>
-  <details>
-    <summary>Tracking options</summary>
-    <div class="grid">
-    <div class="fld"><label>maxTrack</label><input id="imaxtrack" value="1" data-persist></div>
-    <div class="fld"><label>filterMinCF</label><input id="imincf" value="0.001" data-persist></div>
-    <div class="fld"><label>filterBeta</label><input id="ibeta" value="60" data-persist></div>
-    <div class="fld"><label>warmupTolerance</label><input id="iwarmup" value="5" data-persist></div>
-    <div class="fld"><label>missTolerance</label><input id="imiss" value="5" data-persist></div>
+<section class="block" id="tools">
+  <div class="wrap">
+    <div class="eyebrow">Four tools</div>
+    <h2>Pick one and go straight in.</h2>
+    <p class="intro">Each card opens that tool directly. Everything you build previews with the real tracker, on your laptop or your phone, before you export.</p>
+
+    <div class="tools">
+      <a class="tool" href="studio.html#image">
+        <span class="n">01</span>
+        <h3>Image tracking</h3>
+        <p>Point a phone at a poster, flyer, label or artwork and something appears on it. Add your images, compile them into targets, place a 3D model, video, image or text on top, then export.</p>
+        <ul><li>.mind targets</li><li>.glb · video · image · text</li><li>multiple targets</li></ul>
+        <span class="go">Open image tracking →</span>
+      </a>
+      <a class="tool" href="studio.html#face">
+        <span class="n">02</span>
+        <h3>Face tracking</h3>
+        <p>Masks, hats, glasses, anything that rides on a face. Load a rigged head and it mouths what you mouth, driven live by the camera. A test head is built in, so you can try it in seconds.</p>
+        <ul><li>no target needed</li><li>talking faces</li><li>52 face shapes</li></ul>
+        <span class="go">Open face tracking →</span>
+      </a>
+      <a class="tool" href="studio.html#rig">
+        <span class="n">03</span>
+        <h3>Face rig</h3>
+        <p>Got a head model that can't talk? Paint its jaw and lips and the rig generates ten mouth shapes for it, then hands you back a new .glb ready for face tracking.</p>
+        <ul><li>any .glb</li><li>10 mouth shapes</li><li>exports .glb</li></ul>
+        <span class="go">Open the face rig →</span>
+      </a>
+      <a class="tool" href="studio.html#qr">
+        <span class="n">04</span>
+        <h3>QR code</h3>
+        <p>A branded code that points straight at wherever you host your experience. Patterns, corners, frames, captions and your own mark in the centre. Download as SVG or PNG.</p>
+        <ul><li>SVG · PNG</li><li>custom centre mark</li><li>no redirect</li></ul>
+        <span class="go">Open the QR maker →</span>
+      </a>
     </div>
-    <div class="row">
-    <label class="chk"><input type="checkbox" id="iuiscan" checked data-persist> Scanning overlay</label>
-    <label class="chk"><input type="checkbox" id="iuiload" checked data-persist> Loading overlay</label>
-    <label class="chk"><input type="checkbox" id="istats" data-persist> Show stats</label>
-    </div>
-    <p class="hint" style="margin-top:10px"><b>filterMinCF</b> lower = smoother but laggier · <b>filterBeta</b> higher = more responsive. Library defaults are 0.001 and 1000. <b>warmupTolerance</b> frames before a target counts as found, <b>missTolerance</b> before it counts as lost.</p>
-  </details>
+  </div>
 </section>
 
-<section>
-  <div class="step">Step 3</div>
-  <h2>Preview &amp; export</h2>
-  <p class="hint">The preview runs the real tracker. Export gives you a folder that works as-is.</p>
-  <div class="row">
-    <button id="run" disabled>Start preview</button>
-    <button id="stop" class="ghost">Stop</button>
-    <button id="gen" class="ghost">Generate index.html</button>
-    <button id="bundle" class="ghost" disabled>Download bundle (.zip)</button>
-  </div>
-  <div class="status" id="s4"></div>
-  <pre id="out"></pre>
-</section>
-</div>
-<div class="panel" id="panel-face" hidden>
-<section>
-  <div class="step">Step 1</div>
-  <h2>Content</h2>
-  <p class="hint">Face tracking compiles nothing — there is no target. A pretrained mesh runs at capture time and the content rides on one of its landmarks.</p>
-  <div class="grid">
-    <div class="fld"><label>Type</label><select id="fkind" data-persist>
-      <option value="glb">3D model (.glb)</option>
-      <option value="video">Video</option>
-      <option value="image">Image</option>
-      <option value="plane">Plane</option>
-      <option value="box">Box</option>
-      <option value="text">Text</option>
-    </select></div>
-  </div>
-  <div class="row" id="ffilerow">
-    <label class="filebtn">Choose file<input type="file" id="ffile"></label>
-    <button class="ghost sm" id="ftest">Use test head</button>
-  </div>
-  <div class="grid" id="ftextrow">
-    <div class="fld" style="grid-column:1/-1"><label>Text</label><input id="ftext" value="Vértice" data-persist></div>
-  </div>
-  <div class="grid" id="fcolorrow">
-    <div class="fld"><label>Colour</label><input id="fcolor" value="#E0A24C" data-persist></div>
-  </div>
-  <div class="grid" id="fwhrow">
-    <div class="fld"><label>Width</label><input id="fw" value="1" data-persist></div>
-    <div class="fld"><label>Height</label><input id="fh" value="0.56" data-persist></div>
-  </div>
-  <div class="grid">
-    <div class="fld"><label>Scale</label><input id="fsc" value="0.1" data-persist></div>
-    <div class="fld"><label>Pos X</label><input id="fpx" value="0" data-persist></div>
-    <div class="fld"><label>Pos Y</label><input id="fpy" value="0" data-persist></div>
-    <div class="fld"><label>Pos Z</label><input id="fpz" value="0" data-persist></div>
-    <div class="fld"><label>Rot X</label><input id="frx" value="0" data-persist></div>
-    <div class="fld"><label>Rot Y</label><input id="fry" value="0" data-persist></div>
-    <div class="fld"><label>Rot Z</label><input id="frz" value="0" data-persist></div>
-  </div>
-  <div class="grid" id="fmorphrow">
-    <div class="fld" style="grid-column:1/-1">
-      <label class="chk"><input type="checkbox" id="fmorph" data-persist> Talk with the face (drive morph targets)</label>
+<section class="block" id="how">
+  <div class="wrap">
+    <div class="eyebrow">How it works</div>
+    <h2>Build here. Host anywhere.</h2>
+    <div class="steps">
+      <div class="step"><b>1 · Build</b><h3>Make it in the tab</h3><p>Add your images or models and place your content. Your files stay on your device.</p></div>
+      <div class="step"><b>2 · Preview</b><h3>Try it for real</h3><p>The preview runs the actual tracker on your camera, so what you see is what visitors get.</p></div>
+      <div class="step"><b>3 · Export</b><h3>Download a folder</h3><p>One zip with the page and its assets. It works as-is, with nothing of ours left in the loop.</p></div>
+      <div class="step"><b>4 · Host &amp; share</b><h3>Put it online</h3><p>Any host that serves HTTPS will do (the camera needs it): GitHub Pages, Netlify or your own site. Then make the QR.</p></div>
     </div>
-    <div class="fld"><label>Smoothing</label><input id="fsmooth" value="0.35" data-persist></div>
-    <div class="fld"><label>Gain</label><input id="fgain" value="1" data-persist></div>
   </div>
-  <div class="status" id="fmorphcheck"></div>
-  <p class="hint" id="fmorphhint" style="margin-top:10px">MediaPipe returns 52 ARKit blendshapes every
-  frame — <span class="mono">jawOpen</span>, <span class="mono">mouthPucker</span>,
-  <span class="mono">mouthFunnel</span> and the rest. This maps them onto a <span class="mono">.glb</span>'s
-  morph targets, so the model mouths what you mouth. The same shape is spelled
-  <span class="mono">mouthSmileLeft</span>, <span class="mono">mouthSmile_L</span> or
-  <span class="mono">blendShape1.mouthSmile_L</span> depending on who exported it; all three are matched.
-  Pick a <span class="mono">.glb</span> above and it is checked immediately — target count, how many
-  match, and whether A-Frame can decode it at all.
-  <b>Baked facial animation is dropped</b> while this is on — an animation clip and live blendshapes
-  write to the same influences and the clip wins. Export plain glTF/GLB: KTX2-compressed or
-  meshopt-packed models need decoder paths that A-Frame leaves empty by default — the generated
-  pages now set them, so those load too. Draco needs nothing: A-Frame ships a decoder path for it.</p>
-  <div class="status" id="f1"></div>
-  <details>
-    <summary>Tracking options</summary>
-    <div class="grid">
-    <div class="fld"><label>filterMinCF</label><input id="fmincf" value="0.001" data-persist></div>
-    <div class="fld"><label>filterBeta</label><input id="fbeta" value="60" data-persist></div>
-    <div class="fld"><label>Anchor index</label><input id="fanchor" value="168" data-persist></div>
-    </div>
-    <div class="row">
-    <label class="chk"><input type="checkbox" id="focc" checked data-persist> Face occluder</label>
-    <label class="chk"><input type="checkbox" id="fmirror" data-persist> Disable mirror</label>
-    <label class="chk"><input type="checkbox" id="fuiscan" checked data-persist> Scanning overlay</label>
-    <label class="chk"><input type="checkbox" id="fuiload" checked data-persist> Loading overlay</label>
-    <label class="chk"><input type="checkbox" id="fstats" data-persist> Show stats</label>
-    </div>
-    <p class="hint" style="margin-top:10px">These are One-Euro filter settings:
-  <span class="mono">cutoff = filterMinCF + filterBeta × speed</span>.
-  <b>filterMinCF</b> governs how much it smooths when you are still — lower is steadier but laggier.
-  <b>filterBeta</b> governs how quickly smoothing is abandoned as you move — higher follows fast
-  motion but lets noise through when you are still, because camera noise has a non-zero speed too.
-  <b>If the mask shakes while you hold still, lower filterBeta. If it lags when you turn your head,
-  raise it.</b> mind-ar ships 0.001 and <b>1000</b>; 1000 is very aggressive, so the default here is
-  <b>60</b>. Reasoned from how the filter is defined, not measured — a fake camera feed is too
-  stable to reproduce real sensor jitter, so this one needs your eyes on a real phone.</p>
-  </details>
-  <div class="row">
-    <button class="ghost sm anchor" data-i="168">168 · between eyes</button>
-    <button class="ghost sm anchor" data-i="10">10 · forehead</button>
-    <button class="ghost sm anchor" data-i="1">1 · nose tip</button>
-    <button class="ghost sm anchor" data-i="152">152 · chin</button>
-  </div>
-  <p class="hint" style="margin-top:8px">Anchors are MediaPipe FaceMesh indices,
-  <span class="mono">0–467</span>; the presets are the commonly used ones. The occluder is a
-  head-shaped mask hiding geometry behind the face — without it, glasses arms and hats render
-  straight through the head.</p>
 </section>
 
-<section>
-  <div class="step">Step 2</div>
-  <h2>Preview &amp; export</h2>
-  <p class="hint">Runs the real face tracker on your camera. Nothing to point at — it attaches as
-  soon as it finds a face.</p>
-  <div class="row">
-    <button id="frun" disabled>Start preview</button>
-    <button id="fstop" class="ghost">Stop</button>
-    <button id="fgen" class="ghost">Generate index.html</button>
+<section class="block">
+  <div class="wrap split">
+    <div>
+      <div class="eyebrow">A tool, not a platform</div>
+      <h2>There is nothing for us to switch off.</h2>
+      <p class="intro">Many AR services host your experience for you, then charge for views, for removing their watermark, or for keeping the QR code alive. Here there is no account to cancel and no redirect between your code and your visitors. The QR points at your URL, so it works for as long as your page does.</p>
+      <p class="note">That also means we don't host it for you. If you'd rather have a project built and run for you, that's what <a href="https://verticecriativo.pt">Vértice Criativo</a> does.</p>
+    </div>
+    <div class="card">
+      <h3>What you get</h3>
+      <dl>
+        <dt>Cost</dt><dd>Free. No account, no plan, no limits on views.</dd>
+        <dt>Privacy</dt><dd>Images and models are processed in your browser and never uploaded.</dd>
+        <dt>Output</dt><dd>Plain HTML and assets you own, plus SVG/PNG QR codes.</dd>
+        <dt>Hosting</dt><dd>Yours. Anywhere that serves HTTPS.</dd>
+        <dt>Licence</dt><dd>MIT. The source is on <a href="https://github.com/verticecriativo/vertice-ar-compile" style="color:var(--brass)">GitHub</a>.</dd>
+      </dl>
+    </div>
   </div>
-  <div class="status" id="f3"></div>
-  <pre id="fout"></pre>
 </section>
 
-<section>
-  <div class="step">Reference</div>
-  <h2>Getting a model to talk</h2>
-  <p class="hint">Everything needed to pick a model, or work out why one does nothing. The same
-  notes, in full, are in the
-  <a href="https://github.com/verticecriativo/vertice-ar-compile/blob/main/FAQ-talking-face.md">FAQ</a>.</p>
+<section class="block" id="credits">
+  <div class="wrap">
+    <div class="eyebrow">Credits</div>
+    <h2>Built on open source.</h2>
+    <p class="intro">The studio is a thin layer over work other people gave away. These projects do the heavy lifting, and their licences travel with them.</p>
 
-  <details class="help">
-    <summary>Quickest path</summary>
-    <ol>
-      <li>Press <b>Use test head</b> above. It loads a model bundled in this repo with all 51
-      drivable ARKit shapes, and sets type, scale, anchor and the checkbox for you.</li>
-      <li>Press <b>Start preview</b> and allow the camera.</li>
-    </ol>
-    <p>The preview corner shows <span class="mono">morphs 51/51 matched</span>. If that reads 51/51
-    and nothing moves, the problem is the setup, not the model — which is why the test head ships
-    here.</p>
-  </details>
-
-  <details class="help">
-    <summary>What a model needs — four separate things</summary>
-    <ol>
-      <li><b>Morph targets</b> (blend shapes / shape keys) at all.</li>
-      <li><b>Named with the ARKit set</b> — <span class="mono">jawOpen</span>,
-      <span class="mono">mouthPucker</span> and so on.</li>
-      <li><b>Plain glTF</b> — no KTX2, meshopt or Draco. A-Frame installs none of those loaders.</li>
-      <li><b>Light enough for a phone</b> — under ~300k triangles and ~8&nbsp;MB of textures.</li>
-    </ol>
-    <p>A model can satisfy three and still do nothing. Pick a <span class="mono">.glb</span> above
-    and all four are checked from the file alone — no camera, no upload.</p>
-    <p><b>A skeleton rig is not a blendshape rig.</b> Mixamo characters animate a body through
-    joints and have zero facial morph targets. Image-to-3D output (Meshy, Tripo) is one dense static
-    mesh — no skin, no animation, no morphs. Neither will ever talk.</p>
-  </details>
-
-  <details class="help">
-    <summary>Scale — the reason a correct model looks like nothing</summary>
-    <p>mind-ar's face space is roughly <b>centimetres</b>. The anchor sits about 100 units from the
-    camera and carries its own scale from the detected face, so the numbers are nothing like
-    A-Frame's usual metres. Measured with the bundled test head:</p>
-    <table>
-      <tr><td class="mono">1</td><td>~21% of frame height — floats on the face</td></tr>
-      <tr><td class="mono">3</td><td>~62% — covers the head. <b>Start here.</b></td></tr>
-      <tr><td class="mono">8</td><td>~160% — off screen</td></tr>
+    <table class="credits">
+      <thead><tr><th>Project</th><th>What it does here</th><th>Licence</th></tr></thead>
+      <tbody>
+        <tr><td><a href="https://github.com/hiukim/mind-ar-js">MindAR</a></td><td>Image and face tracking, and the target compiler. By HiuKim Yuen.</td><td class="lic">MIT</td></tr>
+        <tr><td><a href="https://aframe.io">A-Frame</a></td><td>The 3D scene your content lives in.</td><td class="lic">MIT</td></tr>
+        <tr><td><a href="https://github.com/c-frame/aframe-extras">aframe-extras</a></td><td>Playing animations baked into models. By Don McCurdy and contributors.</td><td class="lic">MIT</td></tr>
+        <tr><td><a href="https://threejs.org">three.js</a></td><td>The face-rig viewer and .glb export.</td><td class="lic">MIT</td></tr>
+        <tr><td><a href="https://www.tensorflow.org/js">TensorFlow.js</a></td><td>Runs MindAR's image tracking in the browser.</td><td class="lic">Apache-2.0</td></tr>
+        <tr><td><a href="https://ai.google.dev/edge/mediapipe/solutions/vision/face_landmarker">MediaPipe Face Landmarker</a></td><td>The face mesh and the 52 face shapes that drive talking heads.</td><td class="lic">Apache-2.0</td></tr>
+        <tr><td><a href="https://github.com/google/draco">Draco</a></td><td>Loading compressed models.</td><td class="lic">Apache-2.0</td></tr>
+        <tr><td><a href="https://github.com/zeux/meshoptimizer">meshoptimizer</a></td><td>Loading meshopt-packed models. By Arseny Kapoulkine.</td><td class="lic">MIT</td></tr>
+        <tr><td><a href="https://github.com/BinomialLLC/basis_universal">Basis Universal</a></td><td>Loading KTX2 textures.</td><td class="lic">Apache-2.0</td></tr>
+        <tr><td><a href="https://stuk.github.io/jszip/">JSZip</a></td><td>Packing the export into one download. By Stuart Knightley.</td><td class="lic">MIT / GPLv3</td></tr>
+        <tr><td><a href="https://github.com/kazuhikoarase/qrcode-generator">qrcode-generator</a></td><td>Encoding the QR codes. By Kazuhiko Arase.</td><td class="lic">MIT</td></tr>
+        <tr><td><a href="https://github.com/mrchipset/aniface-demo">Red panda test head</a></td><td>The built-in test head. By Zouyu, base mesh from <a href="https://github.com/ICT-VGL/ICT-FaceKit">ICT-FaceKit</a>.</td><td class="lic">MIT</td></tr>
+        <tr><td><a href="https://fonts.google.com">Space Grotesk, JetBrains Mono, Newsreader</a></td><td>Type.</td><td class="lic">SIL OFL 1.1</td></tr>
+      </tbody>
     </table>
-    <p>The <b>Scale</b> default of <span class="mono">0.1</span> suits the box, plane and text
-    primitives. At <span class="mono">0.1</span> a head is about <b>12&nbsp;px</b> — present,
-    correctly placed, invisible.</p>
-    <p>Full-body avatars (Ready Player Me) have their origin <b>at the feet</b>, so on a face anchor
-    you see the shoes. Use a head-only model for a mask.</p>
-    <p><b>Chin showing below the mask?</b> Anchor 168 sits <b>between the eyes</b>, so a head centred
-    on it rides high and your real jaw stays visible underneath. Nudge <b>Pos&nbsp;Y</b> negative —
-    <span class="mono">-0.3</span> is usually enough, and is what the test-head button sets. Raising
-    <b>Scale</b> also works but makes the head cartoonishly large before it covers. Position is in
-    anchor units, so it is sensitive: <span class="mono">-4</span> throws the mask off the bottom of
-    the screen.</p>
-  </details>
-
-  <details class="help">
-    <summary>It will not load, or will not move</summary>
-    <p><b>"A-Frame cannot decode this file"</b> — KTX2, meshopt or Draco. Re-save as plain glTF,
-    which leaves geometry, morph targets and textures untouched:</p>
-    <pre class="snippet">npm install @gltf-transform/cli
-npx gltf-transform cp packed.glb plain.glb</pre>
-    <p><b>"none match the ARKit names"</b> — the same shape is spelled
-    <span class="mono">mouthSmileLeft</span>, <span class="mono">mouthSmile_L</span>,
-    <span class="mono">mouthSmile.L</span> or <span class="mono">blendShape1.mouthSmile_L</span>
-    depending on the exporter. All four are matched automatically. If it still reports 0 the names
-    are genuinely something else — rename the shape keys in Blender and re-export.</p>
-    <p><b>Too heavy</b> —
-    <span class="mono">npx gltf-transform optimize big.glb small.glb --texture-size 1024</span></p>
-    <p><b>Matched, but still still</b> — is <b>Talk with the face</b> ticked? And does the model carry
-    a baked facial animation? A clip writes the same influences every frame and wins; the generated
-    page drops <span class="mono">animation-mixer</span> automatically when morphs are driven.</p>
-  </details>
-
-  <details class="help">
-    <summary>Where to get a model</summary>
-    <p><b>Bundled and verified:</b> the test head above — 51/51 ARKit, 12k triangles, ~1&nbsp;MB,
-    MIT licensed.</p>
-    <p><b>Ready Player Me</b> — append
-    <span class="mono">?morphTargets=ARKit</span> to the avatar's
-    <span class="mono">.glb</span> URL. Tested at 51/51. Never add
-    <span class="mono">?lod=2</span>: it keeps a quarter of the triangles and the morph targets come
-    back empty.</p>
-    <p><b>You do not need all 52.</b> Whatever subset exists is driven, and the preview names what is
-    missing. A convincing mouth needs about ten:</p>
-    <pre class="snippet">jawOpen  mouthClose  mouthFunnel  mouthPucker
-mouthSmileLeft  mouthSmileRight  mouthStretchLeft
-mouthStretchRight  mouthShrugUpper  mouthRollLower</pre>
-    <p>Ten hand-sculpted shape keys on a character you already have is free and about a day's work.
-    Eyes and brows start working the moment the names exist, with no code change.</p>
-  </details>
-
-  <details class="help">
-    <summary>Does this need a microphone?</summary>
-    <p><b>No.</b> A virtual mask does not block the camera — MediaPipe still sees the real mouth in
-    the video, so the movement comes from face tracking. Audio is a separate matter, needed only for
-    a different voice (pitch shift or conversion), lip-syncing to speech the wearer is not actually
-    performing, or amplitude-reactive effects.</p>
-  </details>
+    <p class="fine">The studio itself is MIT licensed, © 2026 Vértice Criativo, Unipessoal Lda. Third-party libraries load from their public CDNs under their own licences. QR Code is a registered trademark of DENSO WAVE INCORPORATED.</p>
+  </div>
 </section>
-</div>
-<div class="panel" id="panel-rig" hidden>
-<section>
-  <div class="step">Step 1</div>
-  <h2>Load a head</h2>
-  <p class="hint">Takes any <span class="mono">.glb</span> and gives it ARKit morph targets, so a
-  model that cannot talk can. Everything happens in this tab — the model is never uploaded.</p>
-  <div class="row">
-    <label class="filebtn">Choose .glb<input type="file" id="rigfileinput" accept=".glb,model/gltf-binary"></label>
-    <button class="ghost sm" id="rigtesthead">Use test head</button>
-  </div>
-  <div class="status" id="rig1"></div>
-</section>
-
-<section>
-  <div class="step">Step 2</div>
-  <h2>Paint the jaw</h2>
-  <p class="hint">Paint everything that should swing with the jaw — the chin and the <b>lower</b>
-  lip — fading to nothing at the jawline and the mouth corners. Leave the upper lip unpainted:
-  that separation is the entire reason this cannot be done automatically. If both lips move
-  together the mouth never opens.</p>
-  <div id="rigview"></div>
-  <div class="row">
-    <label class="chk"><input type="checkbox" id="rigpaint" disabled> Paint <span class="dim">(off = orbit)</span></label>
-    <label class="chk"><input type="checkbox" id="rigshow" checked> Show weights</label>
-    <button class="ghost sm" id="rigseed" disabled>Seed from bounds</button>
-    <button class="ghost sm" id="rigclear" disabled>Clear</button>
-  </div>
-  <div class="grid">
-    <div class="fld" style="grid-column:1/-1"><label>Painting which region</label>
-      <select id="rigchannel">
-        <option value="jaw">Jaw — chin and lower lip (drives jawOpen)</option>
-        <option value="lips">Lips — the ring around the mouth (drives the other nine)</option>
-      </select></div>
-  </div>
-  <p class="hint"><b>Jaw</b> is everything that swings when the mouth opens. <b>Lips</b> is the ring
-  of geometry right around the mouth opening, upper and lower together — that band is what pulls,
-  purses and smiles. Paint both; they overlap on the lower lip and that is correct.</p>
-  <div class="grid">
-    <div class="fld"><label>Brush size %</label><input id="rigbrush" value="8" data-persist></div>
-    <div class="fld"><label>Strength %</label><input id="rigstrength" value="60" data-persist></div>
-  </div>
-  <p class="hint">Drag to paint, shift-drag to erase. Untick <b>Paint</b> to rotate the model.</p>
-  <div class="status" id="rig2"></div>
-</section>
-
-<section>
-  <div class="step">Step 3</div>
-  <h2>Generate and export</h2>
-  <p class="hint">The shape is a rigid rotation of the painted region about a hinge — measured at
-  <b>97.5%</b> of an authored <span class="mono">jawOpen</span> on a real ARKit head. The hinge is
-  derived from the painted region; override it if the jaw swings from the wrong place.</p>
-  <div class="grid">
-    <div class="fld"><label>Shape name</label><input id="rigname" value="jawOpen" data-persist></div>
-    <div class="fld"><label>Angle °</label><input id="rigangle" value="37.5" data-persist></div>
-    <div class="fld"><label>Hinge Y</label><input id="righy" placeholder="auto"></div>
-    <div class="fld"><label>Hinge Z</label><input id="righz" placeholder="auto"></div>
-  </div>
-  <div class="grid">
-    <div class="fld" style="grid-column:1/-1"><label>Export filename</label><input id="rigfile" value="rigged.glb"></div>
-  </div>
-  <div class="row">
-    <button id="riggen" disabled>Generate jawOpen</button>
-    <button id="rigall" disabled>Generate all 10 mouth shapes</button>
-    <button class="ghost" id="rigdl" disabled>Download .glb</button>
-  </div>
-  <div class="status" id="rig3"></div>
-  <div class="grid">
-    <div class="fld"><label>Test shape</label><select id="rigpick" disabled></select></div>
-    <div class="fld"><label>Lip movement %</label><input id="riglip" value="100" data-persist></div>
-    <div class="fld" style="grid-column:1/-1"><label>Drag to play the selected shape</label>
-      <input id="rigtest" type="range" min="0" max="100" value="0" disabled></div>
-  </div>
-  <div class="status" id="rig4"></div>
-  <p class="hint"><b>Lip movement %</b> scales the nine lip shapes together. They are calibrated so
-  that, driven at the same time as an open jaw, they move the lip ring about <b>half</b> as far as
-  <span class="mono">jawOpen</span> does — measured, because at the original strength the jaw moved
-  the mouth five times more than the mouth shapes did and a purse or a smile was invisible
-  underneath it. Raise this if your character needs a broader mouth, lower it if expressions look
-  rubbery.</p>
-  <p class="hint">The ten are <span class="mono">jawOpen mouthClose mouthFunnel mouthPucker
-  mouthSmileLeft mouthSmileRight mouthStretchLeft mouthStretchRight mouthShrugUpper
-  mouthRollLower</span> — enough to talk. Then load the exported file in <b>Face tracking</b>: the
-  checker reports what matched and <b>Talk with the face</b> drives it. Export re-encodes textures
-  and can grow the file; run it through
-  <span class="mono">gltf-transform optimize</span> before putting it on a phone.</p>
-</section>
-</div>
-<div class="panel" id="panel-qr" hidden>
-<section>
-  <div class="step">Step 1</div>
-  <h2>Where it points</h2>
-  <p class="hint">The code a visitor scans to reach the experience. Keep the URL short — measured:
-  <span class="mono">https://ar.verticecriativo.pt</span> is <b>33×33 modules</b> at level&nbsp;H,
-  and the same URL with campaign parameters is <b>49×49</b>. Half again as dense, for nothing a
-  visitor can see, and it is density that makes a code fail off a glossy screen.</p>
-  <div class="grid">
-    <div class="fld" style="grid-column:1/-1"><label>URL</label>
-      <input id="qurl" value="https://ar.verticecriativo.pt" data-persist></div>
-    <div class="fld"><label>Error correction</label><select id="qec" data-persist>
-      <option value="L">L · 7%</option><option value="M">M · 15%</option>
-      <option value="Q">Q · 25%</option><option value="H" selected>H · 30%</option>
-    </select></div>
-    <div class="fld"><label>Dark</label><input id="qdark" value="#17191F" data-persist></div>
-    <div class="fld"><label>Light</label><input id="qlight" value="#F6F6F8" data-persist></div>
-    <div class="fld"><label>PNG size (px)</label><input id="qpx" value="1024" data-persist></div>
-    <div class="fld"><label>Pattern</label><select id="qpattern" data-persist>
-      <option value="square">Square</option>
-      <option value="rounded">Rounded</option>
-      <option value="xrounded">Extra rounded</option>
-      <option value="dots">Dots</option>
-      <option value="sdots">Small dots</option>
-      <option value="diamond">Diamond</option>
-    </select></div>
-    <div class="fld"><label>Corners</label><select id="qfinder" data-persist>
-      <option value="square">Square</option>
-      <option value="rounded">Rounded</option>
-      <option value="xrounded">Extra rounded</option>
-      <option value="circle">Circle</option>
-      <option value="dot">Square + dot</option>
-      <option value="leaf">Leaf</option>
-    </select></div>
-    <div class="fld"><label>Frame</label><select id="qframe" data-persist>
-      <option value="none">None</option>
-      <option value="box">Box</option>
-      <option value="rounded">Rounded box</option>
-      <option value="caption">Box + caption</option>
-    </select></div>
-    <div class="fld"><label>Caption</label><input id="qcaption" value="SCAN ME" data-persist></div>
-  </div>
-  <div class="row" style="gap:8px">
-    <span style="font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:#5C616D">Colour</span>
-    <button class="swatch" data-c="#17191F" style="background:#17191F" title="Ink"></button>
-    <button class="swatch" data-c="#A15E1E" style="background:#A15E1E" title="Brass"></button>
-    <button class="swatch" data-c="#B3261E" style="background:#B3261E" title="Red"></button>
-    <button class="swatch" data-c="#1F7A4D" style="background:#1F7A4D" title="Green"></button>
-    <button class="swatch" data-c="#1D6FA5" style="background:#1D6FA5" title="Blue"></button>
-    <button class="swatch" data-c="#3B43C4" style="background:#3B43C4" title="Indigo"></button>
-    <button class="swatch" data-c="#6B3FA0" style="background:#6B3FA0" title="Purple"></button>
-    <button class="swatch" data-c="#A62B6D" style="background:#A62B6D" title="Pink"></button>
-  </div>
-  <div class="row">
-    <label class="chk"><input type="checkbox" id="qmark" data-persist> Vértice mark in the centre</label>
-    <label class="filebtn">Upload centre image<input type="file" id="qimg" accept="image/*"></label>
-    <button id="qimgclear" class="ghost sm">Clear</button>
-    <button id="qgen" class="ghost sm">Refresh</button>
-  </div>
-  <p class="hint" style="margin-top:8px">Upload any mark to make codes for the other things you own
-  — it is embedded in the SVG, so the file stays self-contained. Centre art forces level&nbsp;H and
-  covers about 22%, within what H recovers. <b>Rounded finders keep the 1:1:3:1:1 ratio a reader
-  measures, which is why they work in practice — but they are a deviation from the spec.</b> With
-  either, scan the real output at the real distance before you rely on it. Dark-on-light scans most
-  reliably; inverting works on most readers, not all. Every swatch here is dark enough to clear
-  4:1 on white — the measured contrast is shown below, and a pale colour is where consumer QR tools
-  quietly break codes.</p>
-  <div class="status" id="q1"></div>
-  <div id="qprev"></div>
-  <div class="row">
-    <button id="qsvg" disabled>Download SVG</button>
-    <button id="qpng" class="ghost" disabled>Download PNG</button>
-  </div>
-  <p class="hint" style="margin-top:10px">SVG is vector — it scales to any slide or print size
-  without softening. PNG is for tools that will not take SVG.</p>
-</section>
-</div>
-</div>
+</main>
 
 <footer>
-  Compiler pinned to <span class="mono">mind-ar@1.1.5</span>; runtime
-  <span class="mono">mind-ar@1.2.1</span> for image, <span class="mono">1.2.5</span> for face, on
-  <span class="mono">A-Frame 1.4.1</span>. Face is on 1.2.5 because 1.2.1's face bundle does not
-  parse upstream. A <span class="mono">.mind</span> is compiled
-  against specific images and tracks only those.<br>
-  Options are read from the library's component schemas, not its docs, which do not cover face
-  tracking. Determinism and why the toolchain is pinned:
-  <a href="https://github.com/verticecriativo/vertice-ar-compile">vertice-ar-compile</a>.
-  Talking faces — picking a model, fixing one that will not load, scale and anchors:
-  <a href="https://github.com/verticecriativo/vertice-ar-compile/blob/main/FAQ-talking-face.md">FAQ</a>.
-  <span class="mono dim">· build <span id="buildstamp">—</span></span>
+  <div class="wrap">
+    <span>Vértice Criativo, Unipessoal Lda · Lisbon</span>
+    <div class="right">
+      <a href="studio.html">Studio</a>
+      <a href="https://github.com/verticecriativo/vertice-ar-compile">GitHub</a>
+      <a href="https://verticecriativo.pt">verticecriativo.pt</a>
+    </div>
+  </div>
 </footer>
-</div>
-<!-- Shared with the generated pages: the ARKit name table, the dialect matcher and a
-     dependency-free .glb inspector. Loaded before studio.js, which uses the inspector. -->
-<script src="face-morphs.js"></script>
-<script type="module" src="rig.js"></script>
-<script type="module" src="place.js"></script>
-<script src="studio.js"></script>
+
 </body>
 </html>

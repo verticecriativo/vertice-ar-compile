@@ -13,7 +13,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").repl
 const CLOSE = "<" + "/script>";
 // Stamped into the preview tab. The SCENE comes from here, so this is the build id that
 // matters when checking whether a phone is running current bytes. Bump it on every change.
-const BUILD = "2026-10-20y";
+const BUILD = "2026-10-21a";
 
 // The library URLs live here only. The export builders inline them and the preview tab is HANDED
 // them, so a version can never be bumped in one place and left stale in another.
@@ -776,4 +776,15 @@ PANELS.rig = ["nav-rig", "panel-rig"];
 // The WebGL viewport must be created while the panel is visible, or it measures zero and the
 // canvas comes up blank — the same class of bug as the preview's collapsed container.
 $("nav-rig").addEventListener("click", () => { show("rig"); if (window.__rigInit) window.__rigInit(); });
+
+// ---------- deep links ----------
+// The home page links straight to a tool (studio.html#face). Clicking the nav button rather than
+// calling show() runs the same init the click does: the rig's viewer and the image viewport both
+// need their panel visible when WebGL starts. Every switch writes the hash back, so a reload or a
+// shared link lands on the same tool.
+for (const k of Object.keys(PANELS))
+  $("nav-" + k).addEventListener("click", () => history.replaceState(null, "", "#" + k));
+const fromHash = () => { const k = location.hash.slice(1); if (PANELS[k]) $("nav-" + k).click(); };
+fromHash();
+window.addEventListener("hashchange", fromHash);
 renderQR();

@@ -11,6 +11,10 @@ This repo currently holds the **determinism harness** — the measurement the wh
 — compile an image target and preview a model, entirely in the browser. Nothing is uploaded: the
 image, the compiled `.mind` and the `.glb` never leave the tab.
 
+The root is a home page (`index.html`: the four tools, how it works, open-source credits); the
+studio itself is `studio.html`. Each tool has a deep link, `studio.html#image`, `#face`, `#rig` and
+`#qr`, and switching tools writes the hash back so a reload or a shared link lands on the same one.
+
 **Image tracking** — add one or more images, compile them into a single `.mind` (each addressed by
 its index), choose content, preview against the real tracker, then export either a generated
 `index.html` or a **.zip bundle** that runs as-is.
