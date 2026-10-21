@@ -8,7 +8,7 @@
 <meta property="og:title" content="Vértice AR Studio">
 <meta property="og:description" content="Web AR, built in your browser. Your files, your hosting, your QR. Free, no account, nothing uploaded.">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#0C0D11">
+<meta name="theme-color" content="#17191F">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpolygon points='40,40 0,40 20,20' fill='%23191b21'/%3E%3Cpolygon points='40,0 40,40 20,20' fill='%2322242b'/%3E%3Cpolygon points='0,0 40,0 20,20' fill='%233a3e48'/%3E%3Cpolygon points='0,40 0,0 20,20' fill='%232c2f37'/%3E%3Cpolygon points='0,0 19.4,19.2 19.3,19.4 0,0.1' fill='%23e0a24c'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +22,7 @@
   *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
   html { scroll-behavior:smooth; }
   @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
-  body { background:var(--deep); color:var(--paper); font-family:'Space Grotesk',-apple-system,sans-serif;
+  body { background:var(--ink); color:var(--paper); font-family:'Space Grotesk',-apple-system,sans-serif;
          -webkit-font-smoothing:antialiased; line-height:1.55; overflow-x:hidden; }
   a { color:inherit; }
   .wrap { max-width:68rem; margin:0 auto; padding:0 24px; }
@@ -31,7 +31,7 @@
              text-transform:uppercase; color:var(--brass); }
 
   /* top bar */
-  .top { position:sticky; top:0; z-index:5; background:rgba(12,13,17,.86); backdrop-filter:blur(10px);
+  .top { position:sticky; top:0; z-index:5; background:rgba(23,25,31,.86); backdrop-filter:blur(10px);
          -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
   .top .wrap { display:flex; align-items:center; gap:14px; height:64px; }
   .brand { display:flex; align-items:center; gap:12px; text-decoration:none; font-weight:600; letter-spacing:-.01em; }
@@ -47,10 +47,16 @@
 
   /* hero */
   .hero { padding:96px 0 72px; position:relative; }
-  .hero::after { content:""; position:absolute; right:-6%; top:40px; width:min(46vw,520px); aspect-ratio:1;
-    background:conic-gradient(from 45deg,#22242b 0 25%,#191b21 0 50%,#2c2f37 0 75%,#3a3e48 0);
-    clip-path:polygon(0 0,100% 0,100% 100%,0 100%); opacity:.16; transform:rotate(45deg) scale(.7);
-    border-radius:6px; pointer-events:none; }
+  .hero .wrap { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:32px; align-items:center; }
+  .art { width:100%; max-width:460px; justify-self:end; }
+  .art svg { width:100%; height:auto; display:block; overflow:visible; }
+  .art .float { animation:float 4.5s ease-in-out infinite alternate; }
+  .art .shadow { animation:shadow 4.5s ease-in-out infinite alternate; transform-origin:150px 268px; }
+  .art .beam { animation:beam 4.5s ease-in-out infinite alternate; }
+  @keyframes float { to { transform:translateY(-10px); } }
+  @keyframes shadow { to { transform:scale(.88); opacity:.6; } }
+  @keyframes beam { from { opacity:.55; } to { opacity:1; } }
+  @media (prefers-reduced-motion:reduce) { .art .float, .art .shadow, .art .beam { animation:none; } }
   h1 { font-size:clamp(2.3rem,6vw,4.2rem); line-height:1.04; font-weight:600; letter-spacing:-.035em;
        margin:18px 0 0; max-width:15ch; position:relative; z-index:1; }
   .tag { font-family:'Newsreader',Georgia,serif; font-style:italic; font-size:clamp(1.3rem,2.6vw,1.75rem);
@@ -115,13 +121,14 @@
   footer .right { margin-left:auto; display:flex; gap:20px; }
 
   @media (max-width:860px) {
+    .hero .wrap { grid-template-columns:1fr; } .art { justify-self:start; max-width:380px; }
     .steps { grid-template-columns:repeat(2,minmax(0,1fr)); }
     .split { grid-template-columns:1fr; }
   }
   @media (max-width:640px) {
     .wrap { padding:0 16px; }
     .links a:not(.btn) { display:none; }
-    .hero { padding:56px 0 48px; } .hero::after { display:none; }
+    .hero { padding:48px 0 48px; } .hero .wrap { grid-template-columns:1fr; } .art { justify-self:center; max-width:320px; order:-1; }
     .tools, .steps { grid-template-columns:1fr; }
     section.block { padding:52px 0; }
     .credits thead { display:none; }
@@ -159,6 +166,7 @@
 <main>
 <section class="hero">
   <div class="wrap">
+   <div class="copy">
     <div class="eyebrow">Vértice AR Studio · free · in your browser</div>
     <h1>Web AR, built in your browser.</h1>
     <p class="tag">Your files. Your hosting. Your QR.</p>
@@ -170,6 +178,46 @@
     <div class="pills" aria-label="At a glance">
       <span>No account</span><span>Nothing uploaded</span><span>No watermark</span><span>No view limits</span><span>MIT licensed</span>
     </div>
+   </div>
+   <div class="art" aria-hidden="true">
+    <!-- A phone, line-drawn, tracking a printed target and projecting the Vértice pyramid off its
+         screen. Outline only: the page is about the tool, so the art stays a diagram, not a render. -->
+    <svg viewBox="0 0 440 470" fill="none" stroke-linejoin="round" stroke-linecap="round">
+      <!-- projection beam from the screen to the object -->
+      <g class="beam">
+        <polygon points="262,214 92,150 92,262 262,318" fill="#E0A24C" fill-opacity=".07" stroke="none"/>
+        <line x1="262" y1="214" x2="92" y2="150" stroke="#E0A24C" stroke-opacity=".55" stroke-width="1.2" stroke-dasharray="4 6"/>
+        <line x1="262" y1="318" x2="92" y2="262" stroke="#E0A24C" stroke-opacity=".55" stroke-width="1.2" stroke-dasharray="4 6"/>
+      </g>
+      <!-- shadow on the ground -->
+      <ellipse class="shadow" cx="150" cy="268" rx="66" ry="11" fill="#0C0D11" fill-opacity=".55"/>
+      <!-- the AR object: the Vértice pyramid, floating -->
+      <g class="float">
+        <polygon points="150,40 84,176 150,212" fill="#2c2f37" stroke="#E0A24C" stroke-width="1.6"/>
+        <polygon points="150,40 150,212 216,176" fill="#22242b" stroke="#E0A24C" stroke-width="1.6"/>
+        <polyline points="84,176 150,140 216,176" stroke="#AEB4BF" stroke-opacity=".35" stroke-width="1.2" stroke-dasharray="3 5"/>
+        <line x1="150" y1="40" x2="150" y2="140" stroke="#AEB4BF" stroke-opacity=".35" stroke-width="1.2" stroke-dasharray="3 5"/>
+        <circle cx="150" cy="40" r="3.2" fill="#E0A24C" stroke="none"/>
+      </g>
+      <!-- phone -->
+      <rect x="250" y="168" width="160" height="292" rx="28" fill="#17191F" stroke="#AEB4BF" stroke-width="2"/>
+      <rect x="262" y="182" width="136" height="264" rx="18" fill="#1E212A" stroke="#3A3E48" stroke-width="1.2"/>
+      <rect x="306" y="190" width="48" height="10" rx="5" fill="#17191F" stroke="#3A3E48" stroke-width="1"/>
+      <line x1="410" y1="232" x2="410" y2="262" stroke="#AEB4BF" stroke-width="3"/>
+      <!-- on screen: tracking chip -->
+      <circle cx="280" cy="220" r="3" fill="#6FBF95" stroke="none"/>
+      <text x="289" y="223.5" fill="#AEB4BF" font-family="JetBrains Mono, monospace" font-size="9" letter-spacing="1">TRACKING</text>
+      <!-- on screen: the printed target, in perspective, with tracker corners -->
+      <polygon points="286,392 374,392 388,428 272,428" fill="#22242b" stroke="#5C616D" stroke-width="1.2"/>
+      <path d="M280 384 h10 M280 384 v10 M380 384 h-10 M380 384 v10 M266 436 h10 M266 436 v-10 M394 436 h-10 M394 436 v-10" stroke="#E0A24C" stroke-width="1.6"/>
+      <!-- on screen: the same pyramid, sitting on the target -->
+      <polygon points="330,326 296,394 330,408" fill="#2c2f37" stroke="#E0A24C" stroke-width="1.2"/>
+      <polygon points="330,326 330,408 364,394" fill="#22242b" stroke="#E0A24C" stroke-width="1.2"/>
+      <circle cx="330" cy="326" r="1.8" fill="#E0A24C" stroke="none"/>
+      <!-- home bar -->
+      <rect x="306" y="450" width="48" height="3" rx="1.5" fill="#3A3E48" stroke="none"/>
+    </svg>
+   </div>
   </div>
 </section>
 
